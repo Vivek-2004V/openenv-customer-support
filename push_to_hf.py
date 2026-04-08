@@ -16,13 +16,13 @@ def main():
         login()
         
     repo_target = "vivekvish2004/openenv-customer-support"
-    print(f"\nPushing current workspace files to Hugging Face Model Repository -> {repo_target}")
+    print(f"\nPushing current workspace files to Hugging Face Space -> {repo_target}")
     
-    # Push the model files
+    # Push the Space files
     upload_folder(
         folder_path=".", 
         repo_id=repo_target, 
-        repo_type="model",
+        repo_type="space",
         ignore_patterns=[
             "frontend/node_modules/**", 
             "frontend/.next/**", 
