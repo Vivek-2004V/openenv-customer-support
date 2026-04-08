@@ -209,19 +209,28 @@ export default function Home() {
           </div>
 
           <div className="glass-card">
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--foreground)' }}>Control Center</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--foreground)' }}>Control Center</h2>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button className="btn btn-outline" style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }} onClick={() => setActionInput('{\n  "action_type": "classify_ticket",\n  "payload": { "classification": "refund" }\n}')}>🏷️ Classify</button>
+                <button className="btn btn-outline" style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }} onClick={() => setActionInput('{\n  "action_type": "assign_priority",\n  "payload": { "priority": "high" }\n}')}>⚡ Priority</button>
+                <button className="btn btn-outline" style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }} onClick={() => setActionInput('{\n  "action_type": "generate_response",\n  "payload": { "response": "I apologize for the delay, we are fixing this now." }\n}')}>✍️ Reply</button>
+                <button className="btn btn-outline" style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }} onClick={() => setActionInput('{\n  "action_type": "resolve",\n  "payload": {}\n}')}>✅ Resolve</button>
+              </div>
+            </div>
+            
             <div style={{ marginBottom: '1.5rem' }}>
                <textarea 
                 value={actionInput}
                 onChange={(e) => setActionInput(e.target.value)}
-                rows={4}
-                style={{ fontSize: '0.9rem', fontFamily: 'monospace', padding: '1rem', background: '#f8fafc' }}
+                rows={5}
+                style={{ fontSize: '0.9rem', fontFamily: 'monospace', padding: '1rem', background: '#f8fafc', borderRadius: '12px' }}
                 placeholder="Enter AI Action JSON..."
               />
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button className="btn" onClick={sendAction} disabled={loading || !state || state.status === 'session_complete'} style={{ flex: 2 }}>
-                Execute Action
+                {loading ? 'Executing...' : 'Execute Action'}
               </button>
               <button className="btn btn-outline" onClick={runHardGrader} disabled={loading || !state} style={{ flex: 1 }}>
                 Grade Model
