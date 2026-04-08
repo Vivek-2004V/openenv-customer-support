@@ -82,10 +82,24 @@ class CustomerSupportEnv:
 
     def state(self) -> Observation:
         """Standard OpenEnv API: Retrieve the current observation state."""
+        # Shared info for both state and info fields to satisfy frontend expectations
+        current_info = {
+            "queue": [t["ticket_text"][:30] + "..." for t in self.queue],
+            "resolved": self.resolved_count,
+            "total_reward": self.total_reward,
+            "queue_size": len(self.queue)
+        }
+
         if not self.queue:
             return Observation(
-                state={"status": "session_complete", "message": "All tickets in queue processed."},
-                info={"resolved": self.resolved_count, "total_reward": self.total_reward}
+                state={
+                    "status": "session_complete", 
+                    "message": "All tickets in queue processed.",
+                    "total_reward": self.total_reward,
+                    "resolved": self.resolved_count,
+                    "info": current_info
+                },
+                info=current_info
             )
         
         ticket = self.queue[0]
@@ -99,10 +113,13 @@ class CustomerSupportEnv:
             "response": ticket.get("response"),
             "queue_size": len(self.queue),
             "sla_limit": ticket["sla_steps"],
-            "sla_warning": self.current_step >= ticket["sla_steps"] - 2
+            "sla_warning": self.current_step >= ticket["sla_steps"] - 2,
+            "total_reward": self.total_reward,
+            "resolved": self.resolved_count,
+            "info": current_info # Redundant but fixes frontend lookups
         }
         
-        return Observation(state=obs_state, info={"queue": [t["ticket_text"][:30] + "..." for t in self.queue]})
+        return Observation(state=obs_state, info=current_info)
 
     @property
     def current_state(self):

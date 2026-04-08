@@ -55,8 +55,9 @@ def step_env(action: Action):
 @app.get("/state", response_model=Observation)
 def get_state():
     """Retrieve the current deterministic state of the environment."""
-    if env_instance.current_state is None:
-        env_instance.reset()
+    current = env_instance.state().state
+    if current.get("status") == "session_complete":
+        return env_instance.reset()
     return env_instance.state()
 
 @app.get("/tasks")
