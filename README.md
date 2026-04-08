@@ -33,59 +33,65 @@ license: mit
 ## 🌟 Enterprise Features
 This version is upgraded to **Enterprise Grade**, simulating real-company support workflows:
 
-- 📥 **Multi-Ticket Queue**: Manage multiple active tickets in a dynamic workload simulation.
-- ⏳ **SLA Monitoring**: Real-time Service Level Agreement tracking. Tickets have step-based deadlines.
-- 📊 **Performance Analytics**: Session-wide reward tracking and resolution metrics.
-- 🐳 **Full-Stack Docker**: Unified container serving both the React frontend and Python backend.
+- 📥 **Enterprise Queue**: Manage multiple active tickets in a high-concurrency simulation.
+- ⏳ **SLA Monitoring**: Real-time Service Level Agreement tracking with step-based rewards.
+- ✨ **AI Auto-Pilot**: Live decision-making suggestions from Llama 3 integrated directly into the dashboard.
+- ✅ **Standard Compliant**: Fully verified with `openenv validate` and `uv.lock`.
 
 ---
 
 ## 🏗️ Architecture
 ```text
 .
-├── app/                # FastAPI Backend (Simulation Engine)
+├── server/             # Standard OpenEnv Logic (formerly app/)
+│   ├── app.py          # FastAPI Entry Point (uvicorn server.app:main)
 │   ├── env.py          # Enterprise Queue & SLA Logic
-│   ├── main.py         # REST API & Static File Server
-├── frontend/           # Next.js 16 Dashboard
-│   ├── src/app/        # Enterprise Monitoring UI
+│   ├── models.py       # Pydantic Schemas
+├── frontend/           # Next.js 15 Dashboard
+│   ├── out/            # Static Export (served by FastAPI)
 ├── Dockerfile          # Multi-stage Full-Stack Build
-└── inference.py        # LLM Evaluation Pipeline
+├── pyproject.toml      # Standard Python Metadata
+├── uv.lock             # Mandatory Dependency Lockfile
+└── inference.py        # LLM Evaluation Pipeline (Standard STDOUT)
 ```
 
 ---
 
 ## 🛠️ Enterprise Workflow
-1. **Queue Initialization**: Resetting the env populates a queue of unassigned tickets.
-2. **Sequential Decisioning**: The agent must Classify, Prioritize, and Respond to the head ticket.
-3. **SLA Constraints**: Decisions must be made within the `sla_limit` to avoid penalties.
-4. **Automated Handoff**: Resolving a ticket automatically advances the queue.
+1. **Initialize Session**: A single click in the dashboard populates the 3-ticket enterprise queue.
+2. **AI Suggestion**: Use the ✨ **Get AI Suggestion** button to let the model analyze the state.
+3. **Decision Execution**: Monitor the reward and SLA metrics as actions are confirmed.
+4. **Final Grading**: Use the **Grade Model** button to evaluate performance against ground-truth datasets.
 
 ---
 
-## 📊 Reward System (Enterprise Tuning)
-| Type | Value | Condition |
-| :--- | :--- | :--- |
-| **Success** | `+0.4` | Full resolution with all required data. |
-| **Progress** | `+0.2-0.3` | Individual correct steps (Classify/Priority). |
-| **SLA Breach**| `-0.3` | Exceeding the step limit for a ticket. |
-| **Penalty** | `-0.2` | Incorrect classification or poor empathy. |
+## ✅ Submission Validation
+Our automated validator ensures your project is ready for evaluation:
+
+```bash
+# Direct link to your live Space for connectivity & structural verification
+./scripts/validate-submission.sh https://vivekvish2004-openenv-customer-support.hf.space
+```
+
+**Verification Status:**
+1.  **Connectivity**: ✅ PASSED (Hugging Face Space is live)
+2.  **Containerability**: ✅ PASSED (Dockerfile verified)
+3.  **OpenEnv Compliance**: ✅ PASSED (`openenv validate` success)
 
 ---
 
 ## 🚀 Running Locally
 
-### Option A: Docker (Recommended)
-This runs the entire stack (API + Dashboard) in one command:
+### Option A: Standard CLI (Recommended)
 ```bash
-docker build -t openenv-enterprise .
-docker run -p 7860:7860 openenv-enterprise
+pip install .
+server
 ```
 
-### Option B: Manual Development
+### Option B: Development Mode
 **Backend:**
 ```bash
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 7860
+uvicorn server.app:app --host 0.0.0.0 --port 7860 --reload
 ```
 **Frontend:**
 ```bash
@@ -94,33 +100,6 @@ cd frontend && npm install && npm run dev
 
 ---
 
-## ✅ Submission Validation
-Before submitting, run our automated validator to ensure your Hugging Face Space is live and the Docker image builds correctly:
-
-```bash
-chmod +x scripts/validate-submission.sh
-./scripts/validate-submission.sh https://huggingface.co/spaces/vivekvish2004/openenv-customer-support
-```
-
-This script will verify:
-1.  **Connectivity**: Ensures your Space's `/reset` endpoint is reachable.
-2.  **Containerability**: Validates that your `Dockerfile` builds successfully.
-3.  **OpenEnv Compliance**: Runs `openenv validate` to check logic consistency.
-
----
-
-## 📤 Deployment
-This repository is optimized for **Hugging Face Spaces**. The multi-stage `Dockerfile` handles the Node.js build automatically.
-
-To sync all updates:
-```bash
-git add .
-git commit -m "Upgrade to Enterprise: Queue, SLA, and Docker"
-git push origin main
-python push_to_hf.py
-```
-
----
 <div align="center">
-  Built for high-performance AI evaluation using <a href="https://github.com/OpenEnv-AI/OpenEnv">OpenEnv</a>
+  Built for world-class AI evaluation using <a href="https://github.com/OpenEnv-AI/OpenEnv">OpenEnv</a>
 </div>
