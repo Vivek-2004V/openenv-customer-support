@@ -1,3 +1,18 @@
+---
+title: OpenEnv Customer Support Simulation
+emoji: 🏢
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+tags:
+  - openenv
+  - reinforcement-learning
+  - customer-support
+  - env
+license: mit
+---
+
 # AI Customer Support Decision-Making Environment (OpenEnv)
 
 ## Environment Description
