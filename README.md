@@ -35,7 +35,7 @@ This version is upgraded to **Enterprise Grade**, simulating real-company suppor
 
 - 📥 **Enterprise Queue**: Manage multiple active tickets in a high-concurrency simulation.
 - ⏳ **SLA Monitoring**: Real-time Service Level Agreement tracking with step-based rewards.
-- ✨ **AI Auto-Pilot**: Live decision-making suggestions from Llama 3 integrated directly into the dashboard.
+- 🚀 **Auto-Initialization**: Sessions start automatically on page load for a seamless monitoring experience.
 - ✅ **Standard Compliant**: Fully verified with `openenv validate` and `uv.lock`.
 
 ---
@@ -43,12 +43,11 @@ This version is upgraded to **Enterprise Grade**, simulating real-company suppor
 ## 🏗️ Architecture
 ```text
 .
-├── server/             # Standard OpenEnv Logic (formerly app/)
+├── server/             # Standard OpenEnv Logic
 │   ├── app.py          # FastAPI Entry Point (uvicorn server.app:main)
 │   ├── env.py          # Enterprise Queue & SLA Logic
 │   ├── models.py       # Pydantic Schemas
 ├── frontend/           # Next.js 15 Dashboard
-│   ├── out/            # Static Export (served by FastAPI)
 ├── Dockerfile          # Multi-stage Full-Stack Build
 ├── pyproject.toml      # Standard Python Metadata
 ├── uv.lock             # Mandatory Dependency Lockfile
@@ -58,10 +57,10 @@ This version is upgraded to **Enterprise Grade**, simulating real-company suppor
 ---
 
 ## 🛠️ Enterprise Workflow
-1. **Initialize Session**: A single click in the dashboard populates the 3-ticket enterprise queue.
-2. **AI Suggestion**: Use the ✨ **Get AI Suggestion** button to let the model analyze the state.
-3. **Decision Execution**: Monitor the reward and SLA metrics as actions are confirmed.
-4. **Final Grading**: Use the **Grade Model** button to evaluate performance against ground-truth datasets.
+1. **Auto-Start**: Opening the dashboard automatically initializes a 3-ticket enterprise session.
+2. **Decision Execution**: Enter JSON actions manually to solve the active ticket.
+3. **Reward Tracking**: Monitor real-time rewards and SLA status as the queue advances.
+4. **Final Grading**: Use the **Grade Model** button to evaluate overall performance.
 
 ---
 
