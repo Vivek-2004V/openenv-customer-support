@@ -4,5 +4,5 @@ description: "Customer Support Environment for OpenEnv"
 
 environment:
   type: "custom"
-  package: "app.env"
+  package: "server.env"
   class: "CustomerSupportEnv"

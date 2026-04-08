@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.env import CustomerSupportEnv
-from app.models import Action, Observation
-from app.tasks import get_all_tasks
-from app.grader import score_episode
+from server.env import CustomerSupportEnv
+from server.models import Action, Observation
+from server.tasks import get_all_tasks
+from server.grader import score_episode
 import os
 
 app = FastAPI(title="OpenEnv Customer Support API")
@@ -113,3 +113,10 @@ def run_baseline():
 static_dir = os.path.join(os.getcwd(), "static")
 if os.path.exists(static_dir):
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+
+def main():
+    import uvicorn
+    uvicorn.run("server.app:app", host="0.0.0.0", port=7860, reload=False)
+
+if __name__ == "__main__":
+    main()

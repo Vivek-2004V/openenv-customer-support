@@ -5,8 +5,8 @@ import asyncio
 from typing import List, Optional
 from openai import OpenAI
 
-from app.env import CustomerSupportEnv
-from app.models import Action
+from server.env import CustomerSupportEnv
+from server.models import Action
 
 # Mandatory Environment Configuration
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")

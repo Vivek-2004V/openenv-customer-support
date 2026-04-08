@@ -2,7 +2,7 @@ import random
 import time
 import copy
 from typing import Tuple, List, Dict
-from app.models import Action, Observation, Reward
+from server.models import Action, Observation, Reward
 
 # Expanded Scenarios with SLA metadata
 SCENARIOS = [

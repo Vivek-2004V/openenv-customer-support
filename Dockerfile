@@ -28,4 +28,4 @@ COPY --chown=user --from=frontend-builder /build/out $HOME/app/static
 
 EXPOSE 7860
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]
