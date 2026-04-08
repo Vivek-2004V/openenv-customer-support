@@ -255,14 +255,63 @@ export default function Home() {
         </section>
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-           <div className="glass-card" style={{ flex: 1, maxHeight: '400px', display: 'flex', flexDirection: 'column' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem' }}>Queue Status</h2>
+           <div className="glass-card" style={{ flex: 1, maxHeight: '450px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Queue Management</h2>
+                <span className="badge" style={{ background: 'var(--primary)', color: 'white', padding: '2px 10px' }}>{state?.info?.queue?.length || 0} Pending</span>
+              </div>
+
+              {/* Progress Tracker */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.4rem', color: 'var(--muted)' }}>
+                  <span>SESSION PROGRESS</span>
+                  <span>{((state?.info?.resolved || 0) / 3 * 100).toFixed(0)}%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
+                  <div style={{ 
+                    width: `${((state?.info?.resolved || 0) / 3 * 100)}%`, 
+                    height: '100%', 
+                    background: 'var(--primary)', 
+                    transition: 'width 0.5s ease-out' 
+                  }}></div>
+                </div>
+              </div>
+
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                 {state?.info?.queue ? state.info.queue.map((q: string, i: number) => (
-                   <div key={i} className="glass-card" style={{ padding: '0.75rem', fontSize: '0.85rem', fontWeight: 500, background: i === 0 ? '#f0f9ff' : 'white', borderLeft: i === 0 ? '4px solid var(--primary)' : '1px solid var(--card-border)' }}>
-                      {q}
+                 {state?.info?.queue && state.info.queue.length > 0 ? state.info.queue.map((q: string, i: number) => {
+                   const isFirst = i === 0;
+                   const difficulty = q.length > 25 ? "HARD" : q.length > 20 ? "MEDIUM" : "EASY";
+                   return (
+                     <div key={i} className="glass-card" style={{ 
+                       padding: '0.75rem', 
+                       fontSize: '0.85rem', 
+                       background: isFirst ? '#f0f9ff' : 'white', 
+                       borderLeft: isFirst ? '4px solid var(--primary)' : '1px solid var(--card-border)',
+                       position: 'relative',
+                       opacity: isFirst ? 1 : 0.8,
+                       animation: isFirst ? 'pulse 2s infinite' : 'none'
+                     }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                          <span style={{ fontSize: '0.6rem', fontWeight: 800, color: isFirst ? 'var(--primary)' : 'var(--muted)' }}>
+                            {isFirst ? '● ACTIVE NOW' : `UPCOMING #${i + 1}`}
+                          </span>
+                          <span style={{ fontSize: '0.55rem', fontWeight: 900, color: difficulty === 'HARD' ? 'var(--error)' : 'var(--muted)' }}>
+                            {difficulty}
+                          </span>
+                        </div>
+                        <div style={{ fontWeight: 600, color: 'var(--foreground)' }}>{q}</div>
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.65rem', color: 'var(--muted)', display: 'flex', gap: '10px' }}>
+                          <span>⏱️ {isFirst ? 'Est. 2m' : `${(i+1)*3}m wait`}</span>
+                          <span>🏢 Tier 1</span>
+                        </div>
+                     </div>
+                   );
+                 }) : (
+                   <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎯</div>
+                      <p style={{ fontSize: '0.8rem' }}>Queue Cleared</p>
                    </div>
-                 )) : <p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>Empty</p>}
+                 )}
               </div>
            </div>
 
