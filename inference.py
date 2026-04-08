@@ -1,110 +1,116 @@
 import os
 import json
-import argparse
-from typing import Any
-from huggingface_hub import InferenceClient
+import textwrap
+import asyncio
+from typing import List, Optional
+from openai import OpenAI
+
 from app.env import CustomerSupportEnv
 from app.models import Action
 
-def evaluate_llm(task_id: str):
-    """Deterministically evaluate a Hugging Face LLM agent against the support environment."""
-    # Strict dynamic config parsing against Hugging Face requirements
-    model_name = os.environ.get("MODEL_NAME", "meta-llama/Meta-Llama-3-8B-Instruct")
-    hf_token = os.environ.get("HF_TOKEN", "")
-    
-    # Initialize Strict standard OpenEnv tracking log
-    print(f"[START] task={task_id} env=customer-support-env model={model_name}")
+# Mandatory Environment Configuration
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME = os.getenv("MODEL_NAME") or "meta-llama/Meta-Llama-3-8B-Instruct"
 
-    if not hf_token:
-        print("Warning: HF_TOKEN is explicitly empty. Hugging Face Inference may fail or rate limit.")
+# Benchmark Configuration
+TASK_NAME = os.getenv("TASK_NAME", "task_hard_1")
+BENCHMARK = "customer-support-enterprise"
+MAX_STEPS = 15  # Total steps allowed across the queue
+SUCCESS_SCORE_THRESHOLD = 0.1
 
-    # Execute via Hugging Face Hub natively mapped to their architecture
-    client = InferenceClient(
-        model=model_name,
-        token=hf_token
-    )
+# Max Total Reward: Approx 1.0 per ticket * 3 tickets in queue
+MAX_TOTAL_REWARD = 3.0
 
+SYSTEM_PROMPT = textwrap.dedent(
+    """
+    You are an Enterprise AI Customer Support agent resolving a ticket pipeline.
+    For each ticket, you must:
+    1. classify_ticket: {"classification": "refund" | "general_inquiry" | "login_issue" | "feedback" | "technical_issue"}
+    2. assign_priority: {"priority": "low" | "medium" | "high"}
+    3. generate_response: {"response": "<empathetic_text>"}
+    4. resolve: {}
+
+    Your goal is to process the ticket efficiently and move to the next one in the queue.
+    You MUST return ONLY a fully valid JSON object:
+    {"action_type": "<name>", "payload": {...}}
+    """
+).strip()
+
+def log_start(task: str, env: str, model: str) -> None:
+    print(f"[START] task={task} env={env} model={model}", flush=True)
+
+def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+    print(f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}", flush=True)
+
+def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
+
+async def main():
+    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
     env = CustomerSupportEnv()
-    obs = env.reset()
     
-    rewards_history = []
-    
-    # Inject formal logic constraints prompting reliable JSON interactions
-    system_prompt = """You are a highly structured AI customer support agent resolving a ticket pipeline.
-Available actions list:
-1. classify_ticket (payload format: {"classification": "refund" | "general_inquiry" | "login_issue" | "feedback"})
-2. assign_priority (payload format: {"priority": "low" | "medium" | "high"})
-3. generate_response (payload format: {"response": "<text>"})
-4. escalate (payload format: {})
-5. resolve (payload format: {})
+    rewards = []
+    total_steps = 0
+    score = 0.0
+    success = False
 
-You MUST return ONLY a fully valid JSON format mapping this dict schema:
-{
-  "action_type": "<action_name>",
-  "payload": { ... }
-}"""
+    log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
-    done = False
-    step_count = 0
-    conversation_messages = [
-        {"role": "system", "content": system_prompt}
-    ]
+    try:
+        # Reset current enterprise session (populates queue)
+        obs = env.reset()
+        done = False
+        
+        for step in range(1, MAX_STEPS + 1):
+            if done:
+                break
 
-    # Interaction Loop
-    while not done and step_count < env.max_steps:
-        step_count += 1
-        
-        obs_stringified = json.dumps(obs.dict()["state"])
-        conversation_messages.append({"role": "user", "content": f"Current Ticket State: {obs_stringified}\nProvide your next action strictly in JSON:"})
-        
-        error_msg = ""
-        action_type = "unknown"
-        reward_val = 0.0
-        
-        try:
-            # Deterministic, reproducible call explicitly leveraging HF formats
-            response = client.chat_completion(
-                messages=conversation_messages,
-                temperature=0.01, # Hugging Face often crashes on explicitly 0.0 depending on the endpoint model deployed
-                max_tokens=256,
-                response_format={"type": "json"} if hasattr(client, "chat_completion") else None 
-                # Note: Not all HF hosted models support automatic JSON constraints, but instructions prompt for it natively.
-            )
+            current_state = obs.dict()["state"]
             
-            action_text = response.choices[0].message.content
-            action_data = json.loads(action_text)
-            
-            action_type = action_data.get("action_type", "unknown")
-            action = Action(**action_data)
-            
-            # Step the mathematical environment
-            obs, reward, done, info = env.step(action)
-            reward_val = reward.value
-            
-            # Provide reflection feedback to AI
-            conversation_messages.append({"role": "assistant", "content": action_text})
-            conversation_messages.append({"role": "system", "content": f"Action result mapping: Reward={reward_val}, Done={done}, Info={json.dumps(info)}"})
-            
-        except Exception as e:
-            error_msg = str(e).replace("\n", " ").strip()
-            reward_val = -1.0
-            done = True
-            
-        rewards_history.append(reward_val)
-        
-        # Output Explicit formatted log
-        done_str = "true" if done else "false"
-        print(f"[STEP] step={step_count} action={action_type} reward={reward_val:.2f} done={done_str} error={error_msg}")
+            # Agent decision using OpenAI
+            try:
+                completion = client.chat.completions.create(
+                    model=MODEL_NAME,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": f"Current State: {json.dumps(current_state)}"}
+                    ],
+                    temperature=0.0,
+                    response_format={"type": "json_object"}
+                )
+                action_text = completion.choices[0].message.content or "{}"
+                action_data = json.loads(action_text)
+                action = Action(**action_data)
+                action_type = action.action_type
+            except Exception:
+                action = Action(action_type="unknown", payload={})
+                action_type = "error"
 
-    # Output Explicit formatted termination log
-    # True metric determined by pipeline resolution logic
-    success_str = "true" if (env.current_state and env.current_state.get("status") == "closed" and rewards_history and rewards_history[-1] > 0) else "false"
-    r_mapped = ",".join(f"{r:.2f}" for r in rewards_history)
-    print(f"[END] success={success_str} steps={step_count} rewards={r_mapped}")
+            # Step the environment
+            obs, reward_obj, done, info = env.step(action)
+            reward = reward_obj.value
+            
+            rewards.append(reward)
+            total_steps = step
+            
+            log_step(step=step, action=action_type, reward=reward, done=done, error=info.get("error"))
+
+            if done:
+                break
+
+        # Calculate final normalized score
+        final_reward_sum = sum(rewards)
+        # We target a normalized score between 0 and 1
+        score = final_reward_sum / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else 0.0
+        score = min(max(score, 0.0), 1.0)
+        success = score >= SUCCESS_SCORE_THRESHOLD
+
+    finally:
+        log_end(success=success, steps=total_steps, score=score, rewards=rewards)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--task", type=str, default="task_hard_1", help="Task ID sequence to execute logic against.")
-    args = parser.parse_args()
-    
-    evaluate_llm(args.task)
+    asyncio.run(main())

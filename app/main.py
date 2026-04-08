@@ -28,7 +28,7 @@ env_instance = CustomerSupportEnv()
 def read_root():
     return {"message": "Welcome to OpenEnv Customer Support API"}
 
-@app.get("/reset", response_model=Observation)
+@app.api_route("/reset", methods=["GET", "POST"], response_model=Observation)
 def reset_env():
     """Reset the environment and yield the initial observation."""
     return env_instance.reset()
