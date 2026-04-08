@@ -1,6 +1,9 @@
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import os
+import json
+from openai import OpenAI
 from server.env import CustomerSupportEnv
 from server.models import Action, Observation
 from server.tasks import get_all_tasks
@@ -21,8 +24,14 @@ app.add_middleware(
 async def favicon():
     return Response(status_code=204)
 
+# AI Configuration
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME = os.getenv("MODEL_NAME") or "meta-llama/Meta-Llama-3-8B-Instruct"
+
 # Global singleton for the environment state lifecycle
 env_instance = CustomerSupportEnv()
+ai_client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY) if API_KEY else None
 
 @app.api_route("/reset", methods=["GET", "POST"], response_model=Observation)
 def reset_env():
@@ -108,6 +117,31 @@ def run_baseline():
         "trace": trace_results,
         "final_state": env_instance.current_state
     }
+
+@app.get("/predict")
+async def predict_action():
+    """Ask the AI Model to suggest the next logical action for the current ticket."""
+    if env_instance.current_state is None or not env_instance.queue:
+        raise HTTPException(status_code=400, detail="No active session or queue is empty.")
+    
+    if not ai_client:
+        raise HTTPException(status_code=500, detail="AI Client not configured. Ensure HF_TOKEN is set.")
+
+    from inference import SYSTEM_PROMPT
+    
+    try:
+        completion = ai_client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": f"Current State: {json.dumps(env_instance.current_state)}"}
+            ],
+            temperature=0.0,
+            response_format={"type": "json_object"}
+        )
+        return json.loads(completion.choices[0].message.content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LLM Prediction failed: {str(e)}")
 
 # Mount static files for the built frontend
 static_dir = os.path.join(os.getcwd(), "static")
