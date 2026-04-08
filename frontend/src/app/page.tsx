@@ -76,25 +76,6 @@ export default function Home() {
     }
   };
 
-  const getPrediction = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/predict`);
-      if (res.ok) {
-        const data = await res.json();
-        setActionInput(JSON.stringify(data, null, 2));
-        setLogs(prev => [...prev, { role: 'system', message: '✨ AI Model suggested a resolution strategy.' }]);
-      } else {
-        const error = await res.json();
-        alert(error.detail || "Prediction failed.");
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Network error while getting AI suggestion.");
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
     fetchState();
   }, []);
@@ -185,19 +166,8 @@ export default function Home() {
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '5rem 2rem' }}>
-                <div style={{ fontSize: '3.5rem', marginBottom: '1.5rem', opacity: 0.8 }}>🏢</div>
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>Ready for Operations</h2>
-                <p style={{ color: 'var(--muted)', marginBottom: '2.5rem', maxWidth: '400px', margin: '0 auto 2.5rem' }}>
-                  Initialize an enterprise session to begin monitoring real-time AI customer support decisions.
-                </p>
-                <button 
-                  className="btn" 
-                  onClick={resetEnv} 
-                  style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)' }}
-                >
-                  🚀 Initialize Session
-                </button>
+              <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--muted)' }}>
+                Waiting for enterprise session initialization...
               </div>
             )}
           </div>
@@ -216,15 +186,7 @@ export default function Home() {
               />
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <button 
-                className="btn btn-outline" 
-                onClick={getPrediction} 
-                disabled={loading || !state || state.status === 'session_complete'}
-                style={{ flex: 1, border: '2px dashed var(--primary)', color: 'var(--primary)' }}
-              >
-                ✨ Get AI Suggestion
-              </button>
-              <button className="btn" onClick={sendAction} disabled={loading || !state || state.status === 'session_complete'} style={{ flex: 1.5 }}>
+              <button className="btn" onClick={sendAction} disabled={loading || !state || state.status === 'session_complete'} style={{ flex: 2 }}>
                 Execute Action
               </button>
               <button className="btn btn-outline" onClick={runHardGrader} disabled={loading || !state} style={{ flex: 1 }}>
