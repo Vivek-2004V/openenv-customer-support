@@ -1,5 +1,6 @@
 import random
 import time
+import copy
 from typing import Tuple, List, Dict
 from app.models import Action, Observation, Reward
 
@@ -165,6 +166,3 @@ class CustomerSupportEnv:
         self.total_reward += reward_val
         
         return self._get_current_observation(), Reward(value=reward_val, is_terminal=is_terminal), is_terminal, {"message": message}
-
-# Need to import copy for deepcopy
-import copy
