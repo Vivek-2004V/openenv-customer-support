@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-const API_URL = "http://127.0.0.1:7860";
+const API_URL = typeof window !== 'undefined' ? (window.location.origin.includes('localhost') ? 'http://127.0.0.1:7860' : window.location.origin) : "http://127.0.0.1:7860";
 
 export default function Home() {
   const [state, setState] = useState<any>(null);

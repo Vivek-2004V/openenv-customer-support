@@ -1,15 +1,17 @@
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.env import CustomerSupportEnv
 from app.models import Action, Observation
 from app.tasks import get_all_tasks
 from app.grader import score_episode
+import os
 
 app = FastAPI(title="OpenEnv Customer Support API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows NextJS on 3000 and any other client
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -110,3 +112,8 @@ def run_baseline():
         "trace": trace_results,
         "final_state": env_instance.current_state
     }
+
+# Mount static files for the built frontend
+static_dir = os.path.join(os.getcwd(), "static")
+if os.path.exists(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
