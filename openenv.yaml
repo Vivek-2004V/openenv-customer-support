@@ -1,0 +1,8 @@
+name: "customer-support-env"
+version: "1.0.0"
+description: "Customer Support Environment for OpenEnv"
+
+environment:
+  type: "custom"
+  package: "app.env"
+  class: "CustomerSupportEnv"
