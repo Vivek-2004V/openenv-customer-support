@@ -1,5 +1,5 @@
 ---
-title: OpenEnv Customer Support Simulation
+title: OpenEnv Enterprise Customer Support
 emoji: 🏢
 colorFrom: blue
 colorTo: indigo
@@ -9,16 +9,17 @@ tags:
   - openenv
   - reinforcement-learning
   - customer-support
-  - env
-  - fastapi
-  - nextjs
+  - enterprise-ai
+  - docker
 license: mit
 ---
 
 <div align="center">
-  <h1>🏢 OpenEnv Customer Support Simulation</h1>
-  <p><b>A mathematically constrained decision-making environment for AI agents.</b></p>
+  <h1>🏢 OpenEnv Enterprise</h1>
+  <p><b>AI Customer Support Simulation & Monitoring Center</b></p>
   
+  <p><i>A mathematically constrained Reinforcement Learning environment for evaluating complex AI decision-making.</i></p>
+
   <a href="https://github.com/Vivek-2004V/openenv-customer-support">
     <img src="https://img.shields.io/badge/GitHub-Repository-blue?logo=github" alt="GitHub">
   </a>
@@ -29,109 +30,82 @@ license: mit
 
 <hr />
 
-## 🌟 Overview
-This project provides a robust **OpenEnv** environment specifically designed for simulating real-world AI customer support workflows. It maps dynamic ticket properties (sentiment, issues) and evaluates sequential agent logic across constrained pipelines.
+## 🌟 Enterprise Features
+This version is upgraded to **Enterprise Grade**, simulating real-company support workflows:
 
-The repository includes:
-- 🚀 **FastAPI Backend**: A high-performance simulation engine.
-- 🎨 **Next.js Frontend**: A modern, interactive dashboard to visualize agent decisions in real-time.
-- 🧠 **AI Environment**: Mathematically grounded tasks for evaluating LLMs on complex decision-making.
+- 📥 **Multi-Ticket Queue**: Manage multiple active tickets in a dynamic workload simulation.
+- ⏳ **SLA Monitoring**: Real-time Service Level Agreement tracking. Tickets have step-based deadlines.
+- 📊 **Performance Analytics**: Session-wide reward tracking and resolution metrics.
+- 🐳 **Full-Stack Docker**: Unified container serving both the React frontend and Python backend.
 
 ---
 
-## 🏗️ Project Structure
+## 🏗️ Architecture
 ```text
 .
-├── app/                # FastAPI Backend
-│   ├── env.py          # Core OpenEnv Environment logic
-│   ├── tasks.py        # Task definitions (Easy, Medium, Hard)
-│   ├── grader.py       # Deterministic grading & reward logic
-│   └── main.py         # API Endpoints & Server setup
-├── frontend/           # Next.js Dashboard
-│   ├── src/app/        # React components and logic
-│   └── public/         # Static assets
-├── inference.py        # Evaluation script for LLM testing
-├── Dockerfile          # Containerization for deployment
-└── requirements.txt    # Python dependencies
+├── app/                # FastAPI Backend (Simulation Engine)
+│   ├── env.py          # Enterprise Queue & SLA Logic
+│   ├── main.py         # REST API & Static File Server
+├── frontend/           # Next.js 16 Dashboard
+│   ├── src/app/        # Enterprise Monitoring UI
+├── Dockerfile          # Multi-stage Full-Stack Build
+└── inference.py        # LLM Evaluation Pipeline
 ```
 
 ---
 
-## 🎮 Action Space
-The agent interacts with the environment by emitting precise JSON payloads:
-
-- **`classify_ticket`**: Categorize the issue (e.g., `refund`, `login_issue`).
-- **`assign_priority`**: Set structural tier (`low`, `medium`, `high`).
-- **`generate_response`**: Draft contextual replies based on sentiment.
-- **`escalate`**: Trigger manual priority bypass.
-- **`resolve`**: Finalize the ticket lifecycle.
+## 🛠️ Enterprise Workflow
+1. **Queue Initialization**: Resetting the env populates a queue of unassigned tickets.
+2. **Sequential Decisioning**: The agent must Classify, Prioritize, and Respond to the head ticket.
+3. **SLA Constraints**: Decisions must be made within the `sla_limit` to avoid penalties.
+4. **Automated Handoff**: Resolving a ticket automatically advances the queue.
 
 ---
 
-## 📊 Task & Reward System
-| Complexity | Task ID | Objectives |
+## 📊 Reward System (Enterprise Tuning)
+| Type | Value | Condition |
 | :--- | :--- | :--- |
-| **Easy** | `task_easy_1` | Correct classification only. |
-| **Medium** | `task_medium_1` | Classification + Sentiment-aware response. |
-| **Hard** | `task_hard_1` | Full pipeline navigation (Classify → Priority → Response → Resolve). |
-
-### Reward Logic:
-- **Success**: Partial rewards for each correct step (`+0.2` to `+0.3`).
-- **Failure**: Penalties for incorrect actions (`-0.2`) or repetition (`-0.1`).
-- **Efficiency**: Step-based penalty (`-0.1`) to promote speed.
+| **Success** | `+0.4` | Full resolution with all required data. |
+| **Progress** | `+0.2-0.3` | Individual correct steps (Classify/Priority). |
+| **SLA Breach**| `-0.3` | Exceeding the step limit for a ticket. |
+| **Penalty** | `-0.2` | Incorrect classification or poor empathy. |
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Running Locally
 
-### 1. Prerequisites
+### Option A: Docker (Recommended)
+This runs the entire stack (API + Dashboard) in one command:
+```bash
+docker build -t openenv-enterprise .
+docker run -p 7860:7860 openenv-enterprise
+```
+
+### Option B: Manual Development
+**Backend:**
 ```bash
 pip install -r requirements.txt
-```
-
-### 2. Run the Backend (API)
-```bash
 uvicorn app.main:app --host 0.0.0.0 --port 7860
 ```
-
-### 3. Run the Frontend (Dashboard)
+**Frontend:**
 ```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### 4. Running via Docker
-```bash
-docker build -t openenv-support .
-docker run -p 7860:7860 openenv-support
-```
-
----
-
-## 🤖 Evaluation & Inference
-Trigger the automated evaluation pipeline to test your LLM's decision-making capabilities:
-
-```bash
-export MODEL_NAME="meta-llama/Meta-Llama-3-8B-Instruct"
-export HF_TOKEN="hf_..."
-python inference.py --task task_hard_1
+cd frontend && npm install && npm run dev
 ```
 
 ---
 
 ## 📤 Deployment
-The project is configured for seamless deployment to Hugging Face Spaces.
+This repository is optimized for **Hugging Face Spaces**. The multi-stage `Dockerfile` handles the Node.js build automatically.
 
-To sync the repository:
+To sync all updates:
 ```bash
 git add .
-git commit -m "Update README and application logic"
+git commit -m "Upgrade to Enterprise: Queue, SLA, and Docker"
 git push origin main
-git push hf main --force
+python push_to_hf.py
 ```
 
 ---
 <div align="center">
-  Built with ❤️ using <a href="https://github.com/OpenEnv-AI/OpenEnv">OpenEnv</a>
+  Built for high-performance AI evaluation using <a href="https://github.com/OpenEnv-AI/OpenEnv">OpenEnv</a>
 </div>
