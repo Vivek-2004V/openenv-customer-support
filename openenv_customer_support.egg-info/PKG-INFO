@@ -2,6 +2,7 @@ Metadata-Version: 2.4
 Name: openenv-customer-support
 Version: 0.1.0
 Summary: Enterprise AI Customer Support Simulation
+Requires-Python: >=3.10
 Requires-Dist: fastapi
 Requires-Dist: uvicorn
 Requires-Dist: pydantic

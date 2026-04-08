@@ -116,6 +116,7 @@ class CustomerSupportEnv:
             "sla_warning": self.current_step >= ticket["sla_steps"] - 2,
             "total_reward": self.total_reward,
             "resolved": self.resolved_count,
+            "last_step_status": self.history[-1]["status"] if self.history else "neutral",
             "info": current_info # Redundant but fixes frontend lookups
         }
         
@@ -208,5 +209,23 @@ class CustomerSupportEnv:
         reward_val -= 0.05 # Smaller per-step cost
 
         self.total_reward += reward_val
+
+        # Step-level Status Logic
+        status = "success" if reward_val > 0 else "failed" if reward_val < 0 else "neutral"
         
-        return self.state(), Reward(value=reward_val, is_terminal=is_terminal), is_terminal, {"message": message}
+        # Update History with detailed metadata
+        self.history.append({
+            "step_count": len(self.history) + 1,
+            "action": a_type,
+            "reward": reward_val,
+            "status": status,
+            "message": message
+        })
+        
+        step_info = {
+            "message": message,
+            "status": status,
+            "reward": reward_val
+        }
+        
+        return self.state(), Reward(value=reward_val, is_terminal=is_terminal), is_terminal, step_info

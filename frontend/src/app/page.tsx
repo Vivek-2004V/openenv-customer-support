@@ -79,12 +79,14 @@ export default function Home() {
         showStatus("Session finished successfully!", "success");
       } else {
         setState(data.observation.state);
+        const stepStatus = data.info.status;
         setLogs(prev => [...prev, {
           role: 'agent', 
           message: `Action: ${actionObj.action_type}`,
-          info: `${data.info.message} | Reward: ${data.reward.value.toFixed(2)}`
+          info: `${data.info.message} | Reward: ${data.reward.value.toFixed(2)}`,
+          status: stepStatus
         }]);
-        showStatus("Action executed successfully.", "success");
+        showStatus(`Action executed: ${stepStatus.toUpperCase()}`, stepStatus === "failed" ? "error" : "success");
       }
     } catch (e: any) {
       showStatus(e.message || "Network Error.", "error");
@@ -319,8 +321,14 @@ export default function Home() {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem' }}>Activity Logs</h2>
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column-reverse', gap: '0.75rem' }}>
               {logs.map((log, i) => (
-                <div key={i} className={`log-entry ${log.role === 'agent' ? 'log-agent' : 'log-customer'}`} style={{ padding: '0.75rem' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '0.25rem', opacity: 0.6 }}>{log.role}</div>
+                <div key={i} className={`log-entry ${log.role === 'agent' ? 'log-agent' : 'log-customer'}`} style={{ 
+                  padding: '0.75rem',
+                  borderLeft: log.status === 'success' ? '4px solid #10b981' : log.status === 'failed' ? '4px solid #ef4444' : 'none'
+                }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '0.25rem', opacity: 0.6, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{log.role}</span>
+                    {log.status && <span style={{ color: log.status === 'success' ? '#10b981' : '#ef4444' }}>{log.status.toUpperCase()}</span>}
+                  </div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{log.message}</div>
                   {log.info && <div style={{ fontSize: '0.7rem', color: 'var(--primary)', marginTop: '0.25rem', fontWeight: 700 }}>{log.info}</div>}
                 </div>
