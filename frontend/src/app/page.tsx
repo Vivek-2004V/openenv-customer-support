@@ -16,7 +16,12 @@ export default function Home() {
       const res = await fetch(`${API_URL}/state`);
       if (res.ok) {
         const data = await res.json();
-        setState(data.state);
+        if (data.state && data.state.status !== "session_complete") {
+          setState(data.state);
+        } else {
+          // No active session or session finished, start new one
+          resetEnv();
+        }
       }
     } catch (e) {
       console.error(e);
@@ -77,7 +82,14 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchState();
+    const init = async () => {
+      await fetchState();
+      // If no active session, auto-initialize
+      if (!state) {
+        resetEnv();
+      }
+    };
+    init();
   }, []);
 
   return (
