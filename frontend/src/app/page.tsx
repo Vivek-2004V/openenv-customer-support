@@ -46,12 +46,26 @@ export default function Home() {
   const sendAction = async () => {
     setLoading(true);
     try {
-      const actionObj = JSON.parse(actionInput);
+      // 1. Clean and Parse JSON
+      let actionObj;
+      try {
+        actionObj = JSON.parse(actionInput.trim());
+      } catch (e) {
+        throw new Error("JSON Parse Error: Please check your brackets and commas.");
+      }
+
+      // 2. Execute Fetch
       const res = await fetch(`${API_URL}/step`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(actionObj)
       });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ detail: "Unknown server error" }));
+        throw new Error(`Server Error: ${errorData.detail || res.statusText}`);
+      }
+
       const data = await res.json();
       
       if (data.observation.state.status === "session_complete") {
@@ -65,8 +79,8 @@ export default function Home() {
           info: `${data.info.message} | Reward: ${data.reward.value.toFixed(2)}`
         }]);
       }
-    } catch (e) {
-      alert("Invalid JSON action format or Network Error.");
+    } catch (e: any) {
+      alert(e.message || "Network Error: Could not reach the backend.");
     }
     setLoading(false);
   };
