@@ -86,13 +86,22 @@ export default function Home() {
   };
 
   const runHardGrader = async () => {
+    setLoading(true);
+    setScore(null);
     try {
       const res = await fetch(`${API_URL}/grader?task_id=task_hard_1`);
+      
+      if (!res.ok) {
+        throw new Error("Grader Error: Could not reach the evaluation engine.");
+      }
+
       const data = await res.json();
-      setScore(data.score);
-    } catch (e) {
-      console.error(e);
+      setScore(data.score ?? 0);
+      setLogs(prev => [...prev, { role: 'system', message: `📈 Model Evaluation Complete! Score: ${(data.score * 100).toFixed(0)}%` }]);
+    } catch (e: any) {
+      alert(e.message || "Network Error: Grader failed.");
     }
+    setLoading(false);
   };
 
   useEffect(() => {
