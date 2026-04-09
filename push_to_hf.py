@@ -15,7 +15,7 @@ def main():
         print("Please securely provide your Hugging Face Access Token when prompted:")
         login()
         
-    repo_target = "vivekvish2004/openenv-customer-support"
+    repo_target = "openenv-customer-support/openenv-customer-support"
     print(f"\nPushing current workspace files to Space -> {repo_target}")
     
     # Push the Space files

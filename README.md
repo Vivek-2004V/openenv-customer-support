@@ -20,10 +20,10 @@ license: mit
   
   <p><i>A mathematically constrained Reinforcement Learning environment for evaluating complex AI decision-making.</i></p>
 
-  <a href="https://github.com/Vivek-2004V/openenv-customer-support">
+  <a href="https://github.com/Arise-openenv-customer-support/openenv-customer-support">
     <img src="https://img.shields.io/badge/GitHub-Repository-blue?logo=github" alt="GitHub">
   </a>
-  <a href="https://huggingface.co/spaces/vivekvish2004/openenv-customer-support">
+  <a href="https://huggingface.co/spaces/openenv-customer-support/openenv-customer-support">
     <img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-yellow" alt="Hugging Face Spaces">
   </a>
 </div>
