@@ -136,10 +136,16 @@ class CustomerSupportEnv:
             return None
         return self.queue[0]
 
-    @property
-    def tasks(self) -> List[Dict]:
-        """Expose available tasks for OpenEnv discovery as a property."""
+    # Static tasks attribute for discovery
+    tasks = TASKS
+
+    def get_tasks(self) -> List[Dict]:
+        """Expose available tasks for OpenEnv discovery as a method."""
         return TASKS
+
+    def grade(self, task_id: str, history: List[Dict[str, Any]], ground_truth: Dict[str, Any]) -> float:
+        """Standard naming for automated graders."""
+        return self.grade_task(task_id, history, ground_truth)
 
     def grade_task(self, task_id: str, history: List[Dict[str, Any]], ground_truth: Dict[str, Any]) -> float:
         """Convenience method for the validator to grade a specific task execution."""

@@ -17,13 +17,17 @@ def test_task_enumeration():
     print("🔍 Testing Task Enumeration...")
     env = CustomerSupportEnv()
     
-    # 1. Check tasks property exists and returns correct number
-    if not hasattr(env, 'tasks'):
-        print("❌ Error: CustomerSupportEnv missing tasks property.")
+    # 1. Check get_tasks exists and returns correct number
+    if not hasattr(env, 'get_tasks'):
+        print("❌ Error: CustomerSupportEnv missing get_tasks() method.")
         return False
     
-    tasks = env.tasks
-    print(f"✅ Found {len(tasks)} tasks.")
+    tasks = env.get_tasks()
+    print(f"✅ Found {len(tasks)} tasks via get_tasks().")
+    
+    # Also check static property
+    if not hasattr(CustomerSupportEnv, 'tasks'):
+        print("⚠️ Warning: CustomerSupportEnv missing static tasks attribute (optional but recommended).")
     
     if len(tasks) < 3:
         print(f"❌ Error: Only found {len(tasks)} tasks, expected at least 3.")
@@ -37,22 +41,17 @@ def test_task_enumeration():
         required_keys = ['has_grader', 'has_evaluator', 'grader']
         for key in required_keys:
             val = task.get(key)
-            if not val:
-                print(f"    ❌ Error: Task {task_id} missing or false for '{key}'.")
+            if val is not True:
+                print(f"    ❌ Error: Task {task_id} {key} should be True (boolean). Found: {val}")
                 return False
-            if key == 'grader' and not isinstance(val, str):
-                 print(f"    ❌ Error: Task {task_id} grader should be a string reference.")
-                 return False
-        print(f"    ✅ Metadata OK (Grader: {task.get('grader')})")
+        print(f"    ✅ Metadata OK (Boolean grader: {task.get('grader')})")
 
     return True
 
 def test_dynamic_grading():
-    print("\n🔍 Testing Dynamic Grader Execution...")
+    print("\n🔍 Testing Dynamic Grader Execution via env.grade()...")
     env = CustomerSupportEnv()
-    tasks = env.tasks
-    
-    import importlib
+    tasks = env.get_tasks()
     
     ground_truth = {
         "expected_classification": "refund",
@@ -62,24 +61,19 @@ def test_dynamic_grading():
     
     for task in tasks:
         task_id = task.get('id')
-        grader_ref = task.get('grader')
-        print(f"  - Testing grader for: {task_id} -> {grader_ref}")
+        print(f"  - Testing grade() method for: {task_id}")
         
-        try:
-            mod_name, func_name = grader_ref.split(':')
-            module = importlib.import_module(mod_name)
-            grader_func = getattr(module, func_name)
-        except Exception as e:
-            print(f"    ❌ Error: Could not resolve grader {grader_ref}: {e}")
-            return False
-            
-        # Test Grader Functionality
+        # Test Grader Functionality via env.grade
         mock_state = {"classification": "refund", "priority": "high", "status": "closed", "response": "sorry", "sentiment": "angry"}
-        score = grader_func(task.get('difficulty', 'EASY'), [{"state": mock_state}], ground_truth)
-        print(f"    Mock execution score: {score:.3f}")
-        
-        if not (0.0 <= score <= 1.0):
-            print(f"    ❌ Error: Score out of range!")
+        try:
+            score = env.grade(task_id, [{"state": mock_state}], ground_truth)
+            print(f"    Execution score: {score:.3f}")
+            
+            if not (0.0 <= score <= 1.0):
+                print(f"    ❌ Error: Score out of range!")
+                return False
+        except Exception as e:
+            print(f"    ❌ Error: grade() method failed for {task_id}: {e}")
             return False
             
     return True

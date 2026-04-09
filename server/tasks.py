@@ -7,7 +7,7 @@ TASKS = [
         "difficulty": "EASY",
         "objective": "Only classify the issue correctly. You do not need to assign priority or resolve the ticket.",
         "description": "Accurately categorize the customer's issue into one of the predefined categories (refund, technical_issue, etc.).",
-        "grader": "server.grader:score_episode",
+        "grader": True,
         "has_grader": True,
         "has_evaluator": True
     },
@@ -17,7 +17,7 @@ TASKS = [
         "difficulty": "EASY",
         "objective": "Correctly assign the priority level (low/medium/high) to the ticket based on the customer's sentiment and urgency.",
         "description": "Determine the urgency of the ticket and set the priority level to low, medium, or high.",
-        "grader": "server.grader:score_episode",
+        "grader": True,
         "has_grader": True,
         "has_evaluator": True
     },
@@ -27,7 +27,7 @@ TASKS = [
         "difficulty": "MEDIUM",
         "objective": "Classify the ticket issue correctly and generate an appropriate response. If the customer is angry, ensure the response includes empathy (e.g., 'sorry').",
         "description": "Categorize the issue and draft a response that addresses the user's sentiment with appropriate empathy.",
-        "grader": "server.grader:score_episode",
+        "grader": True,
         "has_grader": True,
         "has_evaluator": True
     },
@@ -37,7 +37,7 @@ TASKS = [
         "difficulty": "MEDIUM",
         "objective": "Classify the issue and draft a professional response. Any response missing a helpful tone or solution keywords like 'help' or 'support' will be penalized.",
         "description": "Classify the ticket and provide a professional, keyword-rich response that guides the user toward a solution.",
-        "grader": "server.grader:score_episode",
+        "grader": True,
         "has_grader": True,
         "has_evaluator": True
     },
@@ -47,7 +47,7 @@ TASKS = [
         "difficulty": "HARD",
         "objective": "Complete the full support workflow: 1. Correctly classify the issue, 2. Accurately assign priority, 3. Generate a correct, empathetic response, and 4. Officially resolve (close) the ticket.",
         "description": "Execute the entire lifecycle of a support ticket from initial classification to final resolution.",
-        "grader": "server.grader:score_episode",
+        "grader": True,
         "has_grader": True,
         "has_evaluator": True
     },
@@ -57,7 +57,7 @@ TASKS = [
         "difficulty": "HARD",
         "objective": "Identify high-priority angry customers and escalate their tickets immediately while providing a reassuring response.",
         "description": "Handle urgent escalations for dissatisfied customers with maximum empathy.",
-        "grader": "server.grader:score_episode",
+        "grader": True,
         "has_grader": True,
         "has_evaluator": True
     },
@@ -67,7 +67,7 @@ TASKS = [
         "difficulty": "HARD",
         "objective": "Resolve the entire ticket queue in the minimum number of steps possible without compromising on classification or priority accuracy.",
         "description": "Optimize for speed and accuracy in a multi-ticket environment.",
-        "grader": "server.grader:score_episode",
+        "grader": True,
         "has_grader": True,
         "has_evaluator": True
     }

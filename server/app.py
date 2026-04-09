@@ -68,41 +68,26 @@ def get_state():
 @app.get("/tasks")
 def get_tasks():
     """Retrieve all available tasks mapped in the environment."""
-    return env_instance.tasks
+    return env_instance.get_tasks()
 
 @app.get("/grader")
 def run_grader(task_id: str = Query(..., description="The matching task ID to score against (e.g. 'task_easy_1')")):
     """Grade the current state of the ticket interaction strictly using the deterministic grader."""
     # Always reset to get a fresh episode with a valid ground_truth
-    obs = env_instance.reset()
-        
-    # Map task ID to its logical difficulty tier
-    tasks = get_all_tasks()
-    task_diff = "EASY"
-    for t in tasks:
-        if t["id"] == task_id:
-            task_diff = t["difficulty"]
-            break
+    env_instance.reset()
     
-    # Ensure ground_truth is populated; fall back to a default if still None
-    ground_truth = env_instance.ground_truth
-    if ground_truth is None:
-        ground_truth = {
-            "expected_classification": env_instance.current_state.get("issue_type", "general_inquiry"),
-            "expected_priority": "medium",
+    # Use the environment's standardized grade method
+    try:
+        score = env_instance.grade(task_id, [{"state": env_instance.current_state}], env_instance.ground_truth)
+        return {
+            "task_id": task_id,
+            "score": float(score),
+            "reward": float(score),
+            "success": bool(score > 0.5),
+            "message": f"Task graded with score {score}"
         }
-            
-    # Mock history extraction mapped to grader logic expecting the final state
-    mock_history = [{"state": env_instance.current_state}]
-    
-    score = score_episode(task_diff, mock_history, ground_truth)
-    return {
-        "task_id": task_id,
-        "score": float(score),
-        "reward": float(score),
-        "success": bool(score > 0.5),
-        "message": f"Task graded with score {score}"
-    }
+    except Exception as e:
+        return {"task_id": task_id, "error": str(e), "status": "error"}
 
 @app.get("/baseline")
 def run_baseline():
