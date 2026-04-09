@@ -147,11 +147,15 @@ async def predict_action():
 # Mount static files for the built frontend
 static_dir = os.path.join(os.getcwd(), "static")
 if os.path.exists(static_dir):
+    print(f"✅ Frontend static files detected at {static_dir}. Mounting...")
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+else:
+    print("⚠️ Warning: Static directory not found. Frontend will not be served.")
 
 def main():
     import uvicorn
-    uvicorn.run("server.app:app", host="0.0.0.0", port=7860, reload=False)
+    print("🚀 Starting OpenEnv Customer Support - Backend & Frontend initialization...")
+    uvicorn.run("server.app:app", host="0.0.0.0", port=7860, reload=False, log_level="info")
 
 if __name__ == "__main__":
     main()
