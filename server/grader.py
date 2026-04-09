@@ -73,15 +73,32 @@ def score_episode(task_difficulty: str, history: List[Dict[str, Any]], ground_tr
     else:
         final_state = final_step
 
-    diff = task_difficulty.upper()
-    if diff == "EASY":
-        score = score_easy(final_state, ground_truth)
+    # Map task ID to difficulty if not already provided
+    if not task_difficulty or task_difficulty == "unknown":
+        task_id = final_state.get("task_id", "").upper()
+        if "HARD" in task_id:
+            diff = "HARD"
+        elif "MEDIUM" in task_id:
+            diff = "MEDIUM"
+        else:
+            diff = "EASY"
+    else:
+        diff = task_difficulty.upper()
+
+    if diff == "HARD":
+        score = score_hard(final_state, ground_truth)
     elif diff == "MEDIUM":
         score = score_medium(final_state, ground_truth)
-    elif diff == "HARD":
-        score = score_hard(final_state, ground_truth)
+    elif diff == "EASY":
+        score = score_easy(final_state, ground_truth)
     else:
-        score = 0.0
+        # Check by task name as fallback
+        if "Hard" in diff or "Workflow" in diff or "Challenge" in diff:
+            score = score_hard(final_state, ground_truth)
+        elif "Medium" in diff or "Respond" in diff:
+            score = score_medium(final_state, ground_truth)
+        else:
+            score = score_easy(final_state, ground_truth)
         
     # OpenEnv requires scores strictly between 0 and 1 (not 0.0 or 1.0)
     score = 0.01 + (score * 0.98)

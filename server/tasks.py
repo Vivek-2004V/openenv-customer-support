@@ -50,6 +50,26 @@ TASKS = [
         "grader": True,
         "has_grader": True,
         "has_evaluator": True
+    },
+    {
+        "id": "task_hard_2",
+        "name": "High Priority Escalation",
+        "difficulty": "HARD",
+        "objective": "Identify high-priority angry customers and escalate their tickets immediately while providing a reassuring response.",
+        "description": "Handle urgent escalations for dissatisfied customers with maximum empathy.",
+        "grader": True,
+        "has_grader": True,
+        "has_evaluator": True
+    },
+    {
+        "id": "task_hard_3",
+        "name": "Efficiency Challenge",
+        "difficulty": "HARD",
+        "objective": "Resolve the entire ticket queue in the minimum number of steps possible without compromising on classification or priority accuracy.",
+        "description": "Optimize for speed and accuracy in a multi-ticket environment.",
+        "grader": True,
+        "has_grader": True,
+        "has_evaluator": True
     }
 ]
 

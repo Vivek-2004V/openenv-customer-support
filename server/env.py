@@ -3,6 +3,7 @@ import time
 import copy
 from typing import Tuple, List, Dict
 from server.models import Action, Observation, Reward
+from server.tasks import TASKS
 
 # Expanded Scenarios with SLA metadata
 SCENARIOS = [
@@ -134,6 +135,10 @@ class CustomerSupportEnv:
         if not self.queue:
             return None
         return self.queue[0]
+
+    def get_tasks(self) -> List[Dict]:
+        """Expose available tasks for OpenEnv discovery."""
+        return TASKS
 
     def step(self, action: Action) -> Tuple[Observation, Reward, bool, dict]:
         """Standard OpenEnv API: Apply an action to the environment."""
