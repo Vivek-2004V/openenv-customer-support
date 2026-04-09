@@ -18,6 +18,18 @@ def main():
     repo_target = "openenv-customer-support/openenv-customer-support"
     print(f"\nPushing current workspace files to Space -> {repo_target}")
     
+    # Ensure the repo exists
+    from huggingface_hub import HfApi
+    api = HfApi()
+    
+    try:
+        api.repo_info(repo_id=repo_target, repo_type="space")
+        print(f"Space {repo_target} already exists.")
+    except Exception:
+        print(f"Space {repo_target} not found. Attempting to create it...")
+        api.create_repo(repo_id=repo_target, repo_type="space", space_sdk="docker", private=False)
+        print(f"✅ Created Space: {repo_target}")
+
     # Push the Space files
     upload_folder(
         folder_path=".", 
