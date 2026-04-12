@@ -7,8 +7,10 @@ venv/
 env/
 .env
 
-# Frontend (Next.js source — not needed in Docker image)
-frontend/
+# Frontend Build Artifacts (Keep source, ignore build junk)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
 
 # Git
 .git/
