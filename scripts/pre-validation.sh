@@ -62,6 +62,19 @@ if ! REPO_DIR="$(cd "$REPO_DIR" 2>/dev/null && pwd)"; then
   exit 1
 fi
 PING_URL="${PING_URL%/}"
+if [[ "$PING_URL" == *"huggingface.co/spaces/"* ]]; then
+  # Simple heuristic to convert HF Space UI URL to direct app URL
+  # https://huggingface.co/spaces/USER/NAME -> https://USER-NAME.hf.space
+  HF_PART=$(echo "$PING_URL" | sed 's|https://huggingface.co/spaces/||')
+  HF_USER=$(echo "$HF_PART" | cut -d'/' -f1)
+  HF_NAME=$(echo "$HF_PART" | cut -d'/' -f2)
+  if [ -n "$HF_USER" ] && [ -n "$HF_NAME" ]; then
+    SUGGESTED_URL="https://${HF_USER}-${HF_NAME}.hf.space"
+    printf "${YELLOW}Notice:${NC} You provided a Hugging Face Space UI URL.\n"
+    printf "        Try using the direct app URL instead:\n"
+    printf "        ${BOLD}${SUGGESTED_URL}${NC}\n\n"
+  fi
+fi
 export PING_URL
 PASS=0
 
