@@ -741,5 +741,11 @@
 
   boot(); // kick off immediately
 
+
+  // keyboard shortcut: Ctrl+Enter to execute action
+  document.getElementById('action-input').addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') sendAction();
+  });
+</script>
 </body>
 </html>
