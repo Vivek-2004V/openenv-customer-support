@@ -37,6 +37,37 @@ app.add_middleware(
 async def favicon():
     return Response(status_code=204)
 
+@app.get("/", tags=["Dashboard"])
+def root_dashboard():
+    """Root landing page to prevent 404 on Hugging Face Spaces."""
+    from fastapi.responses import HTMLResponse
+    html_content = """
+    <html>
+        <head>
+            <title>OpenEnv | Customer Support</title>
+            <style>
+                body { font-family: 'Inter', system-ui, sans-serif; background: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                .card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); padding: 3rem; border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.1); text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+                h1 { margin-top: 0; background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2.5rem; }
+                p { color: #94a3b8; font-size: 1.1rem; max-width: 400px; line-height: 1.6; }
+                .status { display: inline-flex; align-items: center; background: rgba(34, 197, 94, 0.1); color: #4ade80; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; margin-bottom: 2rem; }
+                .status::before { content: ''; display: inline-block; width: 8px; height: 8px; background: #22c55e; border-radius: 50%; margin-right: 0.5rem; }
+                .button { display: inline-block; background: #6366f1; color: white; padding: 0.75rem 1.5rem; border-radius: 0.75rem; text-decoration: none; font-weight: 600; transition: all 0.2s; margin-top: 1rem; }
+                .button:hover { background: #4f46e5; transform: translateY(-2px); }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="status">ENVIRONMENT LIVE</div>
+                <h1>OpenEnv Customer Support</h1>
+                <p>Welcome to the Enterprise AI Customer Support simulation environment. The API is active and ready for evaluation.</p>
+                <a href="/docs" class="button">View API Documentation</a>
+            </div>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
 # AI Configuration
 # Mandatory Pre-Submission Configuration
 API_KEY = os.getenv("HF_TOKEN")
