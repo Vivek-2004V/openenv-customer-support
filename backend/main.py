@@ -1,8 +1,9 @@
+from fastapi import FastAPI, HTTPException, Query, Response, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import os
 import json
 from contextlib import asynccontextmanager
-from fastapi.staticfiles import StaticFiles
-import json
 from openai import OpenAI
 from .env import CustomerSupportEnv
 from .models import Action, Observation, SYSTEM_PROMPT, DEFAULT_MODEL, DEFAULT_API_BASE
