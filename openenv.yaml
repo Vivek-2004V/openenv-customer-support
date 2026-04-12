@@ -1,6 +1,11 @@
 name: "customer-support-env"
 version: "1.0.0"
-description: "Customer Support Environment for OpenEnv"
+description: >
+  Enterprise AI Customer Support simulation where an agent learns to
+  process a queue of support tickets by classifying issues, assigning
+  priority, drafting empathetic responses, and resolving tickets.
+  Implements the full OpenEnv step() / reset() / state() API.
+
 tasks: "tasks.json"
 
 environment:
@@ -8,7 +13,23 @@ environment:
   package: "server.env"
   class: "CustomerSupportEnv"
 
+mode: "simulation"
+
 license: "MIT"
+
 tags:
   - customer-support
   - enterprise-ai
+  - decision-making
+  - nlp
+  - reinforcement-learning
+
+evaluation:
+  grader_endpoint: "/grader"
+  tasks_endpoint: "/tasks"
+  min_tasks_with_graders: 3
+
+runtime:
+  entrypoint: "server.app:app"
+  port: 7860
+  health_endpoint: "/health"

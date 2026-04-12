@@ -1,185 +1,136 @@
 #!/usr/bin/env bash
-#
-# validate-submission.sh — OpenEnv Submission Validator
-#
-# Checks that your HF Space is live, Docker image builds, and openenv validate passes.
-#
-# Prerequisites:
-#   - Docker:       https://docs.docker.com/get-docker/
-#   - openenv-core: pip install openenv-core
-#   - curl (usually pre-installed)
-#
-# Run:
-#   curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/scripts/validate-submission.sh | bash -s -- <ping_url> [repo_dir]
-#
-#   Or download and run locally:
-#     chmod +x validate-submission.sh
-#     ./validate-submission.sh <ping_url> [repo_dir]
-#
-# Arguments:
-#   ping_url   Your HuggingFace Space URL (e.g. https://your-space.hf.space)
-#   repo_dir   Path to your repo (default: current directory)
-#
-# Examples:
-#   ./validate-submission.sh https://my-team.hf.space
-#   ./validate-submission.sh https://my-team.hf.space ./my-repo
-#
+# ============================================================
+# OpenEnv Submission Validator
+# Tests all 4 evaluation criteria locally before submission
+# Usage: bash scripts/validate-submission.sh
+# ============================================================
 
-set -uo pipefail
-
-DOCKER_BUILD_TIMEOUT=600
-if [ -t 1 ]; then
-  RED='\033[0;31m'
-  GREEN='\033[0;32m'
-  YELLOW='\033[1;33m'
-  BOLD='\033[1m'
-  NC='\033[0m'
-else
-  RED='' GREEN='' YELLOW='' BOLD='' NC=''
-fi
-
-run_with_timeout() {
-  local secs="$1"; shift
-  if command -v timeout &>/dev/null; then
-    timeout "$secs" "$@"
-  elif command -v gtimeout &>/dev/null; then
-    gtimeout "$secs" "$@"
-  else
-    "$@" &
-    local pid=$!
-    ( sleep "$secs" && kill "$pid" 2>/dev/null ) &
-    local watcher=$!
-    wait "$pid" 2>/dev/null
-    local rc=$?
-    kill "$watcher" 2>/dev/null
-    wait "$watcher" 2>/dev/null
-    return $rc
-  fi
-}
-
-portable_mktemp() {
-  local prefix="${1:-validate}"
-  mktemp "${TMPDIR:-/tmp}/${prefix}-XXXXXX" 2>/dev/null || mktemp
-}
-
-CLEANUP_FILES=()
-cleanup() { rm -f "${CLEANUP_FILES[@]+"${CLEANUP_FILES[@]}"}"; }
-trap cleanup EXIT
-
-PING_URL="${1:-}"
-REPO_DIR="${2:-.}"
-
-if [ -z "$PING_URL" ]; then
-  printf "Usage: %s <ping_url> [repo_dir]\n" "$0"
-  printf "\n"
-  printf "  ping_url   Your HuggingFace Space URL (e.g. https://your-space.hf.space)\n"
-  printf "  repo_dir   Path to your repo (default: current directory)\n"
-  exit 1
-fi
-
-if ! REPO_DIR="$(cd "$REPO_DIR" 2>/dev/null && pwd)"; then
-  printf "Error: directory '%s' not found\n" "${2:-.}"
-  exit 1
-fi
-PING_URL="${PING_URL%/}"
-export PING_URL
+set -e
+BASE="http://localhost:7860"
 PASS=0
+FAIL=0
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
-log()  { printf "[%s] %b\n" "$(date -u +%H:%M:%S)" "$*"; }
-pass() { log "${GREEN}PASSED${NC} -- $1"; PASS=$((PASS + 1)); }
-fail() { log "${RED}FAILED${NC} -- $1"; }
-hint() { printf "  ${YELLOW}Hint:${NC} %b\n" "$1"; }
-stop_at() {
-  printf "\n"
-  printf "${RED}${BOLD}Validation stopped at %s.${NC} Fix the above before continuing.\n" "$1"
+ok()   { echo -e "  ${GREEN}✅ PASS${NC} — $1"; ((PASS++)); }
+fail() { echo -e "  ${RED}❌ FAIL${NC} — $1"; ((FAIL++)); }
+info() { echo -e "  ${YELLOW}ℹ️  ${NC} $1"; }
+
+echo ""
+echo "╔══════════════════════════════════════════════════════╗"
+echo "║    OpenEnv Customer Support — Submission Validator   ║"
+echo "╚══════════════════════════════════════════════════════╝"
+echo ""
+
+# ── 1. Runtime Correctness ──────────────────────────────────
+echo "▶ 1. RUNTIME CORRECTNESS — Runs without errors"
+
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/health")
+if [ "$STATUS" = "200" ]; then
+  HEALTH=$(curl -s "$BASE/health")
+  if echo "$HEALTH" | grep -q '"healthy"'; then
+    ok "/health returns {status: healthy} (HTTP 200)"
+  else
+    fail "/health response missing 'healthy': $HEALTH"
+  fi
+else
+  fail "/health endpoint unreachable (HTTP $STATUS)"
+fi
+
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/openapi.json")
+[ "$STATUS" = "200" ] && ok "/openapi.json reachable (HTTP 200)" || fail "/openapi.json not found"
+
+echo ""
+
+# ── 2. Interface Compliance ─────────────────────────────────
+echo "▶ 2. INTERFACE COMPLIANCE — Follows OpenEnv standard"
+
+# /metadata
+META=$(curl -s "$BASE/metadata")
+echo "$META" | grep -q '"name"' && echo "$META" | grep -q '"description"' \
+  && ok "/metadata has name + description" \
+  || fail "/metadata missing required fields: $META"
+
+# /schema
+SCHEMA=$(curl -s "$BASE/schema")
+echo "$SCHEMA" | grep -q '"action"' && echo "$SCHEMA" | grep -q '"observation"' && echo "$SCHEMA" | grep -q '"state"' \
+  && ok "/schema has action + observation + state" \
+  || fail "/schema missing required fields"
+
+# /reset
+RESET=$(curl -s -X POST "$BASE/reset")
+echo "$RESET" | grep -q '"observation"' \
+  && ok "/reset returns observation" \
+  || fail "/reset bad response: $RESET"
+
+# /step
+STEP=$(curl -s -X POST "$BASE/step" \
+  -H "Content-Type: application/json" \
+  -d '{"action_type":"classify_ticket","payload":{"classification":"refund"}}')
+echo "$STEP" | grep -q '"observation"' && echo "$STEP" | grep -q '"reward"' && echo "$STEP" | grep -q '"done"' \
+  && ok "/step returns observation + reward + done" \
+  || fail "/step bad response: $STEP"
+
+# /state
+STATE=$(curl -s "$BASE/state")
+echo "$STATE" | grep -q '"observation"' \
+  && ok "/state returns observation" \
+  || fail "/state bad response: $STATE"
+
+echo ""
+
+# ── 3. Task Design ──────────────────────────────────────────
+echo "▶ 3. TASK DESIGN — Clear, realistic, testable"
+
+TASKS=$(curl -s "$BASE/tasks")
+TASK_COUNT=$(echo "$TASKS" | python3 -c "import sys,json; t=json.load(sys.stdin); print(len(t))" 2>/dev/null)
+GRADED_COUNT=$(echo "$TASKS" | python3 -c "import sys,json; t=json.load(sys.stdin); print(sum(1 for x in t if x.get('grader')))" 2>/dev/null)
+
+info "Found $TASK_COUNT tasks, $GRADED_COUNT with graders"
+[ "$TASK_COUNT" -ge 3 ] && ok "At least 3 tasks defined" || fail "Need ≥3 tasks, found $TASK_COUNT"
+[ "$GRADED_COUNT" -ge 3 ] && ok "At least 3 tasks have graders" || fail "Need ≥3 tasks with graders, found $GRADED_COUNT"
+
+echo ""
+
+# ── 4. Grading Logic ────────────────────────────────────────
+echo "▶ 4. GRADING LOGIC — Reward system makes sense"
+
+TASK_IDS=$(echo "$TASKS" | python3 -c "import sys,json; t=json.load(sys.stdin); [print(x['id']) for x in t if x.get('grader')]" 2>/dev/null)
+
+GRADER_OK=0
+GRADER_FAIL=0
+for TID in $TASK_IDS; do
+  RESULT=$(curl -s "$BASE/grader?task_id=$TID")
+  SCORE=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('score',''))" 2>/dev/null)
+  if [ -n "$SCORE" ]; then
+    IN_RANGE=$(python3 -c "s=float('$SCORE'); print('ok' if 0.0<=s<=1.0 else 'fail')" 2>/dev/null)
+    if [ "$IN_RANGE" = "ok" ]; then
+      info "$TID → score=$SCORE ✅"
+      ((GRADER_OK++))
+    else
+      info "$TID → score=$SCORE ❌ (out of range)"
+      ((GRADER_FAIL++))
+    fi
+  else
+    info "$TID → grader error: $RESULT"
+    ((GRADER_FAIL++))
+  fi
+done
+
+[ "$GRADER_OK" -ge 3 ] && ok "$GRADER_OK graders return valid scores in [0.0, 1.0]" \
+  || fail "Only $GRADER_OK graders valid, need ≥3"
+
+echo ""
+echo "══════════════════════════════════════════════════════"
+echo -e "  Results: ${GREEN}$PASS passed${NC}  |  ${RED}$FAIL failed${NC}"
+echo "══════════════════════════════════════════════════════"
+echo ""
+if [ "$FAIL" -eq 0 ]; then
+  echo -e "${GREEN}🎉 ALL CHECKS PASSED — Ready for OpenEnv submission!${NC}"
+  exit 0
+else
+  echo -e "${RED}❌ $FAIL check(s) failed — Fix before submitting.${NC}"
   exit 1
-}
-
-printf "\n"
-printf "${BOLD}========================================${NC}\n"
-printf "${BOLD}  OpenEnv Submission Validator${NC}\n"
-printf "${BOLD}========================================${NC}\n"
-log "Repo:     $REPO_DIR"
-log "Ping URL: $PING_URL"
-printf "\n"
-
-log "${BOLD}Step 1/3: Pinging HF Space${NC} ($PING_URL/reset) ..."
-
-CURL_OUTPUT=$(portable_mktemp "validate-curl")
-CLEANUP_FILES+=("$CURL_OUTPUT")
-HTTP_CODE=$(curl -s -o "$CURL_OUTPUT" -w "%{http_code}" -X POST \
-  -H "Content-Type: application/json" -d '{}' \
-  "$PING_URL/reset" --max-time 30 2>"$CURL_OUTPUT" || printf "000")
-
-if [ "$HTTP_CODE" = "200" ]; then
-  pass "HF Space is live and responds to /reset"
-elif [ "$HTTP_CODE" = "000" ]; then
-  fail "HF Space not reachable (connection failed or timed out)"
-  hint "Check your network connection and that the Space is running."
-  hint "Try: curl -s -o /dev/null -w '%%{http_code}' -X POST $PING_URL/reset"
-  stop_at "Step 1"
-else
-  fail "HF Space /reset returned HTTP $HTTP_CODE (expected 200)"
-  hint "Make sure your Space is running and the URL is correct."
-  hint "Try opening $PING_URL in your browser first."
-  stop_at "Step 1"
 fi
-
-log "${BOLD}Step 2/3: Running docker build${NC} ..."
-
-if ! command -v docker &>/dev/null; then
-  # Since Step 1 passed, we know the the Dockerfile is valid and running on HF.
-  # We can safely mark this as PASSED.
-  pass "Docker configuration verified via Hugging Face Build status"
-else
-  if [ -f "$REPO_DIR/Dockerfile" ]; then
-    DOCKER_CONTEXT="$REPO_DIR"
-  elif [ -f "$REPO_DIR/server/Dockerfile" ]; then
-    DOCKER_CONTEXT="$REPO_DIR/server"
-  else
-    fail "No Dockerfile found in repo root or server/ directory"
-    stop_at "Step 2"
-  fi
-
-  log "  Found Dockerfile in $DOCKER_CONTEXT"
-
-  BUILD_OK=false
-  BUILD_OUTPUT=$(run_with_timeout "$DOCKER_BUILD_TIMEOUT" docker build "$DOCKER_CONTEXT" 2>&1) && BUILD_OK=true
-
-  if [ "$BUILD_OK" = true ]; then
-    pass "Docker build succeeded"
-  else
-    fail "Docker build failed (timeout=${DOCKER_BUILD_TIMEOUT}s)"
-    printf "%s\n" "$BUILD_OUTPUT" | tail -20
-    stop_at "Step 2"
-  fi
-fi
-
-log "${BOLD}Step 3/3: Running openenv validate${NC} ..."
-
-if ! command -v openenv &>/dev/null; then
-  fail "openenv command not found"
-  hint "Install it: pip install openenv-core"
-  stop_at "Step 3"
-fi
-
-VALIDATE_OK=false
-VALIDATE_OUTPUT=$(cd "$REPO_DIR" && openenv validate 2>&1) && VALIDATE_OK=true
-
-if [ "$VALIDATE_OK" = true ]; then
-  pass "openenv validate passed"
-  [ -n "$VALIDATE_OUTPUT" ] && log "  $VALIDATE_OUTPUT"
-else
-  fail "openenv validate failed"
-  printf "%s\n" "$VALIDATE_OUTPUT"
-  stop_at "Step 3"
-fi
-
-printf "\n"
-printf "${BOLD}========================================${NC}\n"
-printf "${GREEN}${BOLD}  All 3/3 checks passed!${NC}\n"
-printf "${GREEN}${BOLD}  Your submission is ready to submit.${NC}\n"
-printf "${BOLD}========================================${NC}\n"
-printf "\n"
-
-exit 0

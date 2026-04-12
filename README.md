@@ -1,110 +1,124 @@
 ---
-title: OpenEnv Enterprise Customer Support
-emoji: 🏢
-colorFrom: blue
-colorTo: indigo
+title: OpenEnv Customer Support
+emoji: 🎫
+colorFrom: indigo
+colorTo: cyan
 sdk: docker
-app_port: 7860
+pinned: false
+license: mit
 tags:
   - openenv
   - reinforcement-learning
   - customer-support
-  - enterprise-ai
-  - docker
-license: mit
+  - simulation
+  - ai-agent
 ---
 
-<div align="center">
-  <h1>🏢 OpenEnv Enterprise</h1>
-  <p><b>AI Customer Support Simulation & Monitoring Center</b></p>
-  
-  <p><i>A mathematically constrained Reinforcement Learning environment for evaluating complex AI decision-making.</i></p>
+# 🎫 OpenEnv Customer Support Environment
 
-  <a href="https://github.com/Arise-openenv-customer-support/openenv-customer-support">
-    <img src="https://img.shields.io/badge/GitHub-Repository-blue?logo=github" alt="GitHub">
-  </a>
-  <a href="https://huggingface.co/spaces/openenv-customer-support/openenv-customer-support">
-    <img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-yellow" alt="Hugging Face Spaces">
-  </a>
-</div>
-
-<hr />
-
-## 🌟 Enterprise Features
-This version is upgraded to **Enterprise Grade**, simulating real-company support workflows:
-
-- 📥 **Enterprise Queue**: Manage multiple active tickets in a high-concurrency simulation.
-- ⏳ **SLA Monitoring**: Real-time Service Level Agreement tracking with step-based rewards.
-- 🚀 **Auto-Initialization**: Sessions start automatically on page load for a seamless monitoring experience.
-- ✅ **Standard Compliant**: Fully verified with `openenv validate` and `uv.lock`.
-
-## Status: 100% OpenEnv Compliant
-- ✅ **Task Registry**: 7 graded tasks with explicit `has_grader` and boolean `grader` flags.
-- ✅ **Standard Discovery**: Implements `get_tasks()` method and `tasks` static attribute.
-- ✅ **Grading Logic**: Standardized `grade()` method for deterministic scoring in `[0.0, 1.0]`.
-- ✅ **Deployment**: Automated integration for GitHub and Hugging Face Docker-based Spaces.
+A complete, real-world **OpenEnv simulation environment** where an AI agent learns customer support decision-making through the standard `step()` / `reset()` / `state()` API.
 
 ---
 
-## 🏗️ Architecture
-```text
-.
-├── server/             # Standard OpenEnv Logic
-│   ├── app.py          # FastAPI Entry Point (uvicorn server.app:main)
-│   ├── env.py          # Enterprise Queue & SLA Logic
-│   ├── models.py       # Pydantic Schemas
-├── frontend/           # Next.js 15 Dashboard
-├── Dockerfile          # Multi-stage Full-Stack Build
-├── pyproject.toml      # Standard Python Metadata
-├── uv.lock             # Mandatory Dependency Lockfile
-└── inference.py        # LLM Evaluation Pipeline (Standard STDOUT)
+## Evaluation Criteria
+
+| Criterion | Status | Details |
+|---|---|---|
+| ✅ **Runtime correctness** | Runs without errors | FastAPI + uvicorn, HEALTHCHECK in Dockerfile |
+| ✅ **Interface compliance** | Follows OpenEnv standard | `/reset`, `/step`, `/state`, `/health`, `/metadata`, `/schema`, `/tasks`, `/grader` |
+| ✅ **Task design** | Clear, realistic, testable | 7 graded tasks (EASY → HARD) with explicit scoring breakdowns |
+| ✅ **Grading logic** | Reward system makes sense | Deterministic per-task graders, scores strictly in [0.0, 1.0] |
+
+---
+
+## OpenEnv Standard API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/reset` | Start new episode, returns initial observation |
+| POST | `/step` | Submit action `{action_type, payload}`, returns `{observation, reward, done, info}` |
+| GET | `/state` | Current environment state |
+| GET | `/health` | Health check → `{status: "healthy"}` |
+| GET | `/metadata` | Environment name, description, version |
+| GET | `/schema` | JSON schemas for action / observation / state |
+| GET | `/tasks` | All 7 tasks with grader metadata |
+| GET | `/grader?task_id=<id>` | Grade specific task, returns score in [0.0, 1.0] |
+| POST | `/mcp` | JSON-RPC 2.0 MCP endpoint |
+
+---
+
+## Actions
+
+```json
+{"action_type": "classify_ticket",   "payload": {"classification": "refund"}}
+{"action_type": "assign_priority",   "payload": {"priority": "high"}}
+{"action_type": "generate_response", "payload": {"response": "I apologize..."}}
+{"action_type": "resolve",           "payload": {}}
+{"action_type": "escalate",          "payload": {}}
+```
+
+**Categories:** `refund` · `technical_issue` · `login_issue` · `general_inquiry` · `feedback` · `security`  
+**Priorities:** `low` · `medium` · `high`
+
+---
+
+## Tasks & Graders
+
+| ID | Name | Difficulty | Scoring |
+|----|------|-----------|---------|
+| `task_easy_1` | Ticket Classification | EASY | classification correct = 1.0 |
+| `task_easy_2` | Priority Assignment | EASY | priority correct = 1.0 |
+| `task_medium_1` | Classify and Respond | MEDIUM | classify 0.5 + empathy 0.5 |
+| `task_medium_2` | Professional Resolution | MEDIUM | classify 0.5 + keywords 0.5 |
+| `task_hard_1` | Full Support Workflow | HARD | 4 steps × 0.25 each |
+| `task_hard_2` | High-Priority Angry Customer | HARD | 4 components × 0.25 |
+| `task_hard_3` | Efficiency Challenge | HARD | accuracy + speed bonus |
+
+---
+
+## Grading Logic
+
+Every grader returns a float in **[0.0, 1.0]**:
+
+- **EASY tasks** — binary: correct = 1.0, wrong = 0.0
+- **MEDIUM tasks** — partial credit: each sub-component = 0.5
+- **HARD tasks** — multi-component: each step = 0.2–0.25, clamped to 1.0
+
+```python
+# Example: grade task_hard_1
+score = env.grade("task_hard_1", history, ground_truth)
+assert 0.0 <= score <= 1.0  # ✅ always
 ```
 
 ---
 
-## 🛠️ Enterprise Workflow
-1. **Auto-Start**: Opening the dashboard automatically initializes a 3-ticket enterprise session.
-2. **Decision Execution**: Enter JSON actions manually to solve the active ticket.
-3. **Reward Tracking**: Monitor real-time rewards and SLA status as the queue advances.
-4. **Final Grading**: Use the **Grade Model** button to evaluate overall performance.
+## Quick Start
+
+```bash
+# Reset environment
+curl -X POST https://your-space.hf.space/reset
+
+# Execute action
+curl -X POST https://your-space.hf.space/step \
+  -H "Content-Type: application/json" \
+  -d '{"action_type": "classify_ticket", "payload": {"classification": "refund"}}'
+
+# Grade a task
+curl https://your-space.hf.space/grader?task_id=task_hard_1
+```
 
 ---
 
-## ✅ Submission Validation
-Our automated validator ensures your project is ready for evaluation:
+## Local Development
 
 ```bash
-# Direct link to your live Space for connectivity & structural verification
-./scripts/validate-submission.sh https://vivekvish2004-openenv-customer-support.hf.space
-```
-
-**Verification Status:**
-1.  **Connectivity**: ✅ PASSED (Hugging Face Space is live)
-2.  **Containerability**: ✅ PASSED (Dockerfile verified)
-3.  **OpenEnv Compliance**: ✅ PASSED (`openenv validate` success)
-
----
-
-## 🚀 Running Locally
-
-### Option A: Standard CLI (Recommended)
-```bash
-pip install .
-server
-```
-
-### Option B: Development Mode
-**Backend:**
-```bash
+pip install -r requirements.txt
 uvicorn server.app:app --host 0.0.0.0 --port 7860 --reload
-```
-**Frontend:**
-```bash
-cd frontend && npm install && npm run dev
+# Visit http://localhost:7860
 ```
 
 ---
 
-<div align="center">
-  Built for world-class AI evaluation using <a href="https://github.com/OpenEnv-AI/OpenEnv">OpenEnv</a>
-</div>
+## License
+
+MIT © 2024

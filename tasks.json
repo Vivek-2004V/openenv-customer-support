@@ -1,72 +1,114 @@
 [
-    {
-        "id": "task_easy_1",
-        "name": "Ticket Classification",
-        "difficulty": "EASY",
-        "objective": "Only classify the issue correctly. You do not need to assign priority or resolve the ticket.",
-        "description": "Accurately categorize the customer's issue into one of the predefined categories (refund, technical_issue, etc.).",
-        "has_grader": true,
-        "has_evaluator": true,
-        "grader": true
+  {
+    "id": "task_easy_1",
+    "name": "Ticket Classification",
+    "difficulty": "EASY",
+    "objective": "Classify the issue correctly using classify_ticket. Choose the right category from: refund, technical_issue, login_issue, general_inquiry, feedback, security.",
+    "description": "The agent reads a customer ticket and must call classify_ticket with the correct category. No other action is required. Score = 1.0 if classification matches, 0.0 otherwise.",
+    "actions_required": ["classify_ticket"],
+    "scoring": {
+      "classification_correct": 1.0,
+      "classification_wrong": 0.0
     },
-    {
-        "id": "task_easy_2",
-        "name": "Priority Assignment",
-        "difficulty": "EASY",
-        "objective": "Correctly assign the priority level (low/medium/high) to the ticket based on the customer's sentiment and urgency.",
-        "description": "Determine the urgency of the ticket and set the priority level to low, medium, or high.",
-        "has_grader": true,
-        "has_evaluator": true,
-        "grader": true
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
+  },
+  {
+    "id": "task_easy_2",
+    "name": "Priority Assignment",
+    "difficulty": "EASY",
+    "objective": "Assign the correct priority (low / medium / high) based on customer urgency and sentiment.",
+    "description": "The agent reads the ticket sentiment and urgency signals, then calls assign_priority. Score = 1.0 for correct priority, 0.0 otherwise.",
+    "actions_required": ["assign_priority"],
+    "scoring": {
+      "priority_correct": 1.0,
+      "priority_wrong": 0.0
     },
-    {
-        "id": "task_medium_1",
-        "name": "Classify and Respond",
-        "difficulty": "MEDIUM",
-        "objective": "Classify the ticket issue correctly and generate an appropriate response. If the customer is angry, ensure the response includes empathy (e.g., 'sorry').",
-        "description": "Categorize the issue and draft a response that addresses the user's sentiment with appropriate empathy.",
-        "has_grader": true,
-        "has_evaluator": true,
-        "grader": true
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
+  },
+  {
+    "id": "task_medium_1",
+    "name": "Classify and Respond",
+    "difficulty": "MEDIUM",
+    "objective": "Correctly classify the ticket AND generate an appropriate response. If the customer is angry, the response must include empathy keywords (sorry, apologize, understand, help, concern).",
+    "description": "Two-step task: classify (0.5 pts) + empathetic response (0.5 pts). Angry customers without empathy score 0 on the response component.",
+    "actions_required": ["classify_ticket", "generate_response"],
+    "scoring": {
+      "classification_correct": 0.5,
+      "response_with_empathy": 0.5
     },
-    {
-        "id": "task_medium_2",
-        "name": "Professional Resolution",
-        "difficulty": "MEDIUM",
-        "objective": "Classify the issue and draft a professional response. Any response missing a helpful tone or solution keywords like 'help' or 'support' will be penalized.",
-        "description": "Classify the ticket and provide a professional, keyword-rich response that guides the user toward a solution.",
-        "has_grader": true,
-        "has_evaluator": true,
-        "grader": true
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
+  },
+  {
+    "id": "task_medium_2",
+    "name": "Professional Resolution",
+    "difficulty": "MEDIUM",
+    "objective": "Classify the ticket and draft a professional response containing at least one solution-oriented keyword (help, support, assist, resolve, solution).",
+    "description": "Two-step task: classify (0.5 pts) + professional keyword response (0.5 pts). Tests the agent's ability to generate actionable, not just sympathetic, responses.",
+    "actions_required": ["classify_ticket", "generate_response"],
+    "scoring": {
+      "classification_correct": 0.5,
+      "response_professional": 0.5
     },
-    {
-        "id": "task_hard_1",
-        "name": "Full Support Workflow",
-        "difficulty": "HARD",
-        "objective": "Complete the full support workflow: 1. Correctly classify the issue, 2. Accurately assign priority, 3. Generate a correct, empathetic response, and 4. Officially resolve (close) the ticket.",
-        "description": "Execute the entire lifecycle of a support ticket from initial classification to final resolution.",
-        "has_grader": true,
-        "has_evaluator": true,
-        "grader": true
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
+  },
+  {
+    "id": "task_hard_1",
+    "name": "Full Support Workflow",
+    "difficulty": "HARD",
+    "objective": "Complete the full 4-step workflow: (1) classify, (2) assign priority, (3) generate empathetic response, (4) resolve the ticket.",
+    "description": "Each of the 4 steps is worth 0.25. The agent must complete all steps correctly to achieve 1.0. Resolving without classification/priority/response penalizes the resolve step.",
+    "actions_required": ["classify_ticket", "assign_priority", "generate_response", "resolve"],
+    "scoring": {
+      "classification_correct": 0.25,
+      "priority_correct": 0.25,
+      "response_with_empathy": 0.25,
+      "ticket_resolved": 0.25
     },
-    {
-        "id": "task_hard_2",
-        "name": "High Priority Angry Customers",
-        "difficulty": "HARD",
-        "objective": "Identify high-priority angry customers and escalate their tickets immediately while providing a reassuring response.",
-        "description": "Handle urgent escalations for dissatisfied customers with maximum empathy.",
-        "has_grader": true,
-        "has_evaluator": true,
-        "grader": true
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
+  },
+  {
+    "id": "task_hard_2",
+    "name": "High-Priority Angry Customer",
+    "difficulty": "HARD",
+    "objective": "Identify an angry/panicked customer, set priority to high, write a reassuring empathetic response, and correctly classify the issue.",
+    "description": "4-component grader: classification (0.25) + high priority (0.25) + empathy in response (0.25) + correct sentiment detection (0.25). Designed for de-escalation training.",
+    "actions_required": ["classify_ticket", "assign_priority", "generate_response"],
+    "scoring": {
+      "classification_correct": 0.25,
+      "priority_high": 0.25,
+      "response_empathetic": 0.25,
+      "sentiment_angry_or_panicked": 0.25
     },
-    {
-        "id": "task_hard_3",
-        "name": "Efficiency Challenge",
-        "difficulty": "HARD",
-        "objective": "Resolve the entire ticket queue in the minimum number of steps possible without compromising on classification or priority accuracy.",
-        "description": "Optimize for speed and accuracy in a multi-ticket environment.",
-        "has_grader": true,
-        "has_evaluator": true,
-        "grader": true
-    }
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
+  },
+  {
+    "id": "task_hard_3",
+    "name": "Efficiency Challenge",
+    "difficulty": "HARD",
+    "objective": "Complete the full workflow (classify + priority + respond + resolve) in 4 steps or fewer for a speed bonus. Accuracy on each step still matters.",
+    "description": "5-component grader: classification (0.2) + priority (0.2) + response (0.2) + resolve (0.2) + efficiency bonus (0.2 for ≤4 steps, 0.1 for ≤6 steps). Max score = 1.0.",
+    "actions_required": ["classify_ticket", "assign_priority", "generate_response", "resolve"],
+    "scoring": {
+      "classification_correct": 0.2,
+      "priority_correct": 0.2,
+      "response_present": 0.2,
+      "ticket_resolved": 0.2,
+      "efficiency_bonus": 0.2
+    },
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
+  }
 ]
