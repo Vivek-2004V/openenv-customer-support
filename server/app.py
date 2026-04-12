@@ -112,8 +112,10 @@ def get_schema():
 def reset_env():
     """Reset the environment and yield the initial observation (GET or POST)."""
     obs = env_instance.reset()
+    state = obs.state
     return {
-        "observation": obs.state,
+        "observation": state,
+        "state": state,  # Legacy compatibility
         "reward": 0.0,
         "done": False
     }
@@ -127,8 +129,10 @@ def step_env(action: Action):
         env_instance.reset()
 
     obs, reward, done, info = env_instance.step(action)
+    state = obs.state
     return {
-        "observation": obs.state,
+        "observation": state,
+        "state": state,  # Legacy compatibility
         "reward": float(reward.value),
         "done": bool(done),
         "info": info
@@ -144,7 +148,10 @@ def get_state():
     if state.get("status") == "session_complete":
         obs = env_instance.reset()
         state = obs.state
-    return {"observation": state}
+    return {
+        "observation": state,
+        "state": state  # Legacy compatibility
+    }
 
 
 # ───────────────────────────────────────────────────────────────────────────────
