@@ -22,7 +22,7 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   },
   {
     "id": "task_easy_2",
@@ -47,7 +47,7 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   },
   {
     "id": "task_medium_1",
@@ -72,7 +72,7 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   },
   {
     "id": "task_medium_2",
@@ -97,7 +97,7 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   },
   {
     "id": "task_hard_1",
@@ -126,7 +126,7 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   },
   {
     "id": "task_hard_2",
@@ -154,7 +154,7 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   },
   {
     "id": "task_hard_3",
@@ -185,7 +185,7 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   },
   {
     "id": "task_extreme_1",
@@ -211,7 +211,7 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   },
   {
     "id": "task_extreme_2",
@@ -238,7 +238,7 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   },
   {
     "id": "task_extreme_3",
@@ -265,6 +265,6 @@
     "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
-    "grader": true
+    "grader": { "type": "endpoint", "url": "/grader" }
   }
 ]

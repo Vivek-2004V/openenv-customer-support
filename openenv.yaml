@@ -13,21 +13,70 @@ tasks:
     scenario: "A customer writes: 'I was charged twice for my subscription this month. Please refund one payment.' — The agent must identify this is a billing/refund issue."
     objective: "Call classify_ticket with the correct category. Categories: refund | technical_issue | login_issue | general_inquiry | feedback | security. Score = 1.0 for correct, 0.0 for wrong."
     passing_threshold: 0.5
-    grader: true
+    grader: { type: "endpoint", url: "/grader" }
   - id: "task_easy_2"
     name: "Priority Triage"
     difficulty: "EASY"
     scenario: "A panicked user writes: 'I cannot log in and my team demo starts in 5 minutes!' — High urgency requires HIGH priority. A general question like 'How do I export a CSV?' should get LOW priority."
     objective: "Call assign_priority with the correct urgency level (low | medium | high). Sentiment and time-pressure signals in the ticket determine priority. Score = 1.0 for correct, 0.0 otherwise."
     passing_threshold: 0.5
-    grader: true
+    grader: { type: "endpoint", url: "/grader" }
   - id: "task_medium_1"
     name: "Classify + Empathetic Reply"
     difficulty: "MEDIUM"
     scenario: "An angry customer is frustrated their refund has not arrived after 10 days. The agent must (1) correctly classify as 'refund' and (2) write a response that acknowledges their frustration using empathy words like 'sorry', 'apologize', or 'understand'."
     objective: "Two actions in sequence: classify_ticket correctly (0.5 pts) + generate_response containing at least one empathy keyword for angry customers (0.5 pts). Missing empathy for an angry customer scores 0 on the response component."
     passing_threshold: 0.5
-    grader: true
+    grader: { type: "endpoint", url: "/grader" }
+  - id: "task_medium_2"
+    name: "Classify + Actionable Resolution"
+    difficulty: "MEDIUM"
+    scenario: "A user reports a technical bug: 'The app crashes every time I try to export a PDF.' The agent must (1) classify as 'technical_issue' and (2) provide an actionable response that guides the user toward a solution (using keywords like 'help', 'support', 'resolve', 'fix', 'solution', 'assist')."
+    objective: "Two actions: classify_ticket correctly (0.5 pts) + generate_response with at least one solution-oriented keyword (0.5 pts). Tests that the agent provides helpful guidance, not just sympathy."
+    passing_threshold: 0.5
+    grader: { type: "endpoint", url: "/grader" }
+  - id: "task_hard_1"
+    name: "Full Ticket Lifecycle"
+    difficulty: "HARD"
+    scenario: "A customer reports they cannot access their account after changing their password. The full workflow must be completed: classify the issue, set the right priority, write an empathetic response that offers next steps, and then close the ticket."
+    objective: "Complete all 4 lifecycle steps correctly. Each step earns 0.25: (1) classify_ticket correct, (2) assign_priority correct, (3) generate_response with empathy/solution keywords, (4) resolve (ticket must have classification + priority + response before resolving)."
+    passing_threshold: 0.5
+    grader: { type: "endpoint", url: "/grader" }
+  - id: "task_hard_2"
+    name: "Angry Customer De-escalation"
+    difficulty: "HARD"
+    scenario: "A furious customer threatens to cancel their subscription after being billed incorrectly three months in a row. The agent must correctly classify as 'refund', set priority to 'high' (angry + financial dispute), write an empathetic response addressing their anger, and the ticket must come from an angry/panicked sentiment."
+    objective: "4-component score: (1) correct classification (0.25), (2) priority set to 'high' (0.25) — any other priority scores 0, (3) response contains empathy keywords (0.25), (4) ticket sentiment is 'angry' or 'panicked' (0.25) — validates agent correctly identifies escalation scenarios."
+    passing_threshold: 0.5
+    grader: { type: "endpoint", url: "/grader" }
+  - id: "task_hard_3"
+    name: "SLA Speed Challenge"
+    difficulty: "HARD"
+    scenario: "A high-SLA enterprise ticket has arrived — the customer's entire team is blocked and the contract mandates resolution within 5 actions. The agent must complete the full workflow (classify + priority + respond + resolve) accurately AND efficiently. Every extra action wastes SLA budget."
+    objective: "5-component score: classification (0.2) + priority (0.2) + response present (0.2) + ticket resolved (0.2) + efficiency bonus: 0.2 for ≤4 steps, 0.1 for ≤6 steps, 0.0 for >6 steps. Maximum achievable score = 1.0."
+    passing_threshold: 0.5
+    grader: { type: "endpoint", url: "/grader" }
+  - id: "task_extreme_1"
+    name: "Policy-Driven Resolution"
+    difficulty: "HARD"
+    scenario: "A customer is asking for a refund on a monthly plan they bought 3 days ago. The agent must search the KB to find the refund policy before responding. The policy says monthly plans are non-refundable after 48 hours."
+    objective: "Multi-step lookup: (1) search_kb for 'refund policy', (2) classify as 'refund', (3) write a response correctly citing the 48-hour rule."
+    passing_threshold: 0.5
+    grader: { type: "endpoint", url: "/grader" }
+  - id: "task_extreme_2"
+    name: "Vague Ticket Clarification"
+    difficulty: "HARD"
+    scenario: "A user writes: 'It's not working. Please fix.' — This is too vague to classify. The agent must ask for clarification first."
+    objective: "Clarification loop: (1) ask_clarification, (2) classify only after clarification, (3) resolve. Attempting to resolve without clarification leads to a penalty."
+    passing_threshold: 0.5
+    grader: { type: "endpoint", url: "/grader" }
+  - id: "task_extreme_3"
+    name: "High-Stakes Security Breach"
+    difficulty: "HARD"
+    scenario: "A customer reports: 'I think my account was hacked! I see login alerts from Russia.' The agent must follow security protocol: search security KB, escalate immediately, and reassure the customer with empathy."
+    objective: "High-urgency lifecycle: (1) search_kb for security, (2) assign priority HIGH, (3) escalate (standard closed won't work for P0)."
+    passing_threshold: 0.5
+    grader: { type: "endpoint", url: "/grader" }
 
 
 environment:
