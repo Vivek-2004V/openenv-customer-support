@@ -122,7 +122,8 @@ def reset_env():
 @app.post("/step", tags=["Environment Control"])
 def step_env(action: Action):
     """Submit an action to process the environment workflow."""
-    if env_instance.current_state is None:
+    # Auto-reset if queue is empty
+    if not env_instance.queue:
         env_instance.reset()
 
     obs, reward, done, info = env_instance.step(action)
@@ -137,10 +138,13 @@ def step_env(action: Action):
 @app.get("/state", tags=["State Management"])
 def get_state():
     """Retrieve the current deterministic state of the environment."""
-    current = env_instance.state().state
-    if current.get("status") == "session_complete":
-        return {"observation": env_instance.reset().state}
-    return {"observation": env_instance.state().state}
+    obs = env_instance.state()   # call ONCE
+    state = obs.state
+    # Auto-reset only if truly no tickets left
+    if state.get("status") == "session_complete":
+        obs = env_instance.reset()
+        state = obs.state
+    return {"observation": state}
 
 
 # ───────────────────────────────────────────────────────────────────────────────
@@ -291,7 +295,7 @@ async def mcp_endpoint(request: Request):
 @app.get("/baseline", tags=["Environment Control"])
 def run_baseline():
     """Execute a hardcoded 'perfect' baseline workflow to trace rewards."""
-    if env_instance.current_state is None:
+    if not env_instance.queue:
         env_instance.reset()
 
     gt = env_instance.ground_truth
