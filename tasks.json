@@ -3,110 +3,186 @@
     "id": "task_easy_1",
     "name": "Ticket Classification",
     "difficulty": "EASY",
-    "objective": "Classify the issue correctly using classify_ticket. Choose the right category from: refund, technical_issue, login_issue, general_inquiry, feedback, security.",
-    "description": "The agent reads a customer ticket and must call classify_ticket with the correct category. No other action is required. Score = 1.0 if classification matches, 0.0 otherwise.",
+    "scenario": "A customer writes: 'I was charged twice for my subscription this month. Please refund one payment.' — The agent must identify this is a billing/refund issue.",
+    "objective": "Call classify_ticket with the correct category. Categories: refund | technical_issue | login_issue | general_inquiry | feedback | security. Score = 1.0 for correct, 0.0 for wrong.",
+    "description": "Single-action task. The agent reads the ticket text, identifies the issue type from clear signal words (e.g. 'refund', 'charged', 'can't login', 'data breach'), and calls classify_ticket once. No priority or response needed.",
+    "example_input": {
+      "ticket_text": "I was charged twice for my subscription. Please refund one payment.",
+      "sentiment": "angry"
+    },
+    "example_action": {
+      "action_type": "classify_ticket",
+      "payload": {"classification": "refund"}
+    },
     "actions_required": ["classify_ticket"],
     "scoring": {
       "classification_correct": 1.0,
       "classification_wrong": 0.0
     },
+    "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
     "grader": true
   },
   {
     "id": "task_easy_2",
-    "name": "Priority Assignment",
+    "name": "Priority Triage",
     "difficulty": "EASY",
-    "objective": "Assign the correct priority (low / medium / high) based on customer urgency and sentiment.",
-    "description": "The agent reads the ticket sentiment and urgency signals, then calls assign_priority. Score = 1.0 for correct priority, 0.0 otherwise.",
+    "scenario": "A panicked user writes: 'I cannot log in and my team demo starts in 5 minutes!' — High urgency requires HIGH priority. A general question like 'How do I export a CSV?' should get LOW priority.",
+    "objective": "Call assign_priority with the correct urgency level (low | medium | high). Sentiment and time-pressure signals in the ticket determine priority. Score = 1.0 for correct, 0.0 otherwise.",
+    "description": "Single-action triage task. The agent reads urgency signals (keywords like 'ASAP', 'urgent', 'presentation', crash reports) and maps them to correct priority. HIGH = emergency/angry/time-sensitive. MEDIUM = frustrated/recurring. LOW = curious/happy/general.",
+    "example_input": {
+      "ticket_text": "I can't log in and my client call starts in 5 minutes!",
+      "sentiment": "panicked"
+    },
+    "example_action": {
+      "action_type": "assign_priority",
+      "payload": {"priority": "high"}
+    },
     "actions_required": ["assign_priority"],
     "scoring": {
       "priority_correct": 1.0,
       "priority_wrong": 0.0
     },
+    "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
     "grader": true
   },
   {
     "id": "task_medium_1",
-    "name": "Classify and Respond",
+    "name": "Classify + Empathetic Reply",
     "difficulty": "MEDIUM",
-    "objective": "Correctly classify the ticket AND generate an appropriate response. If the customer is angry, the response must include empathy keywords (sorry, apologize, understand, help, concern).",
-    "description": "Two-step task: classify (0.5 pts) + empathetic response (0.5 pts). Angry customers without empathy score 0 on the response component.",
+    "scenario": "An angry customer is frustrated their refund has not arrived after 10 days. The agent must (1) correctly classify as 'refund' and (2) write a response that acknowledges their frustration using empathy words like 'sorry', 'apologize', or 'understand'.",
+    "objective": "Two actions in sequence: classify_ticket correctly (0.5 pts) + generate_response containing at least one empathy keyword for angry customers (0.5 pts). Missing empathy for an angry customer scores 0 on the response component.",
+    "description": "Real-world de-escalation task. An angry customer needs both accurate issue categorization AND a tone-appropriate response. The grader checks: (a) classification matches expected_classification, (b) for angry/panicked sentiment, response must contain empathy words [sorry, apologize, understand, help, concern].",
+    "example_input": {
+      "ticket_text": "My refund was supposed to arrive 10 days ago. This is completely unacceptable!",
+      "sentiment": "angry"
+    },
+    "example_actions": [
+      {"action_type": "classify_ticket", "payload": {"classification": "refund"}},
+      {"action_type": "generate_response", "payload": {"response": "I sincerely apologize for the delay on your refund. I understand how frustrating this must be and I am escalating this to our billing team right now."}}
+    ],
     "actions_required": ["classify_ticket", "generate_response"],
     "scoring": {
       "classification_correct": 0.5,
-      "response_with_empathy": 0.5
+      "response_empathetic_for_angry_customer": 0.5
     },
+    "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
     "grader": true
   },
   {
     "id": "task_medium_2",
-    "name": "Professional Resolution",
+    "name": "Classify + Actionable Resolution",
     "difficulty": "MEDIUM",
-    "objective": "Classify the ticket and draft a professional response containing at least one solution-oriented keyword (help, support, assist, resolve, solution).",
-    "description": "Two-step task: classify (0.5 pts) + professional keyword response (0.5 pts). Tests the agent's ability to generate actionable, not just sympathetic, responses.",
+    "scenario": "A user reports a technical bug: 'The app crashes every time I try to export a PDF.' The agent must (1) classify as 'technical_issue' and (2) provide an actionable response that guides the user toward a solution (using keywords like 'help', 'support', 'resolve', 'fix', 'solution', 'assist').",
+    "objective": "Two actions: classify_ticket correctly (0.5 pts) + generate_response with at least one solution-oriented keyword (0.5 pts). Tests that the agent provides helpful guidance, not just sympathy.",
+    "description": "Actionable response task. Unlike task_medium_1 which checks for empathy, this task checks for solution orientation. The agent must show they can guide users toward resolution, not just acknowledge feelings. Keywords checked: [help, support, assist, resolve, solution, fix, guide, step, instructions].",
+    "example_input": {
+      "ticket_text": "The app crashes when I try to export PDF. This is blocking my work.",
+      "sentiment": "frustrated"
+    },
+    "example_actions": [
+      {"action_type": "classify_ticket", "payload": {"classification": "technical_issue"}},
+      {"action_type": "generate_response", "payload": {"response": "I understand the inconvenience. Please try clearing your app cache and updating to v2.3.1. If the issue persists, our support team will assist you directly with a fix."}}
+    ],
     "actions_required": ["classify_ticket", "generate_response"],
     "scoring": {
       "classification_correct": 0.5,
-      "response_professional": 0.5
+      "response_solution_oriented": 0.5
     },
+    "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
     "grader": true
   },
   {
     "id": "task_hard_1",
-    "name": "Full Support Workflow",
+    "name": "Full Ticket Lifecycle",
     "difficulty": "HARD",
-    "objective": "Complete the full 4-step workflow: (1) classify, (2) assign priority, (3) generate empathetic response, (4) resolve the ticket.",
-    "description": "Each of the 4 steps is worth 0.25. The agent must complete all steps correctly to achieve 1.0. Resolving without classification/priority/response penalizes the resolve step.",
+    "scenario": "A customer reports they cannot access their account after changing their password. The full workflow must be completed: classify the issue, set the right priority, write an empathetic response that offers next steps, and then close the ticket.",
+    "objective": "Complete all 4 lifecycle steps correctly. Each step earns 0.25: (1) classify_ticket correct, (2) assign_priority correct, (3) generate_response with empathy/solution keywords, (4) resolve (ticket must have classification + priority + response before resolving).",
+    "description": "End-to-end lifecycle task. This mirrors a real support agent's complete workflow. The grader is strict: resolve only scores 0.25 if the ticket also has classification, priority, and response set. This prevents agents from skipping steps and jumping straight to resolve.",
+    "example_input": {
+      "ticket_text": "I reset my password but still cannot log in. My entire team is locked out!",
+      "sentiment": "panicked"
+    },
+    "example_actions": [
+      {"action_type": "classify_ticket",   "payload": {"classification": "login_issue"}},
+      {"action_type": "assign_priority",   "payload": {"priority": "high"}},
+      {"action_type": "generate_response", "payload": {"response": "I am so sorry you're locked out. I understand how urgent this is. I am escalating this to our account team immediately — you should be back in within 10 minutes. Please try the 'Forgot Password' link in the meantime."}},
+      {"action_type": "resolve",           "payload": {}}
+    ],
     "actions_required": ["classify_ticket", "assign_priority", "generate_response", "resolve"],
     "scoring": {
       "classification_correct": 0.25,
       "priority_correct": 0.25,
-      "response_with_empathy": 0.25,
-      "ticket_resolved": 0.25
+      "response_empathetic_and_actionable": 0.25,
+      "ticket_properly_resolved": 0.25
     },
+    "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
     "grader": true
   },
   {
     "id": "task_hard_2",
-    "name": "High-Priority Angry Customer",
+    "name": "Angry Customer De-escalation",
     "difficulty": "HARD",
-    "objective": "Identify an angry/panicked customer, set priority to high, write a reassuring empathetic response, and correctly classify the issue.",
-    "description": "4-component grader: classification (0.25) + high priority (0.25) + empathy in response (0.25) + correct sentiment detection (0.25). Designed for de-escalation training.",
+    "scenario": "A furious customer threatens to cancel their subscription after being billed incorrectly three months in a row. The agent must correctly classify as 'refund', set priority to 'high' (angry + financial dispute), write an empathetic response addressing their anger, and the ticket must come from an angry/panicked sentiment.",
+    "objective": "4-component score: (1) correct classification (0.25), (2) priority set to 'high' (0.25) — any other priority scores 0, (3) response contains empathy keywords (0.25), (4) ticket sentiment is 'angry' or 'panicked' (0.25) — validates agent correctly identifies escalation scenarios.",
+    "description": "De-escalation specialization task. Real customer support teams have agents who specialize in handling angry customers. This task trains that skill: the agent must recognize the escalation signals, prioritize correctly, AND respond with appropriate emotional intelligence. Assigning low/medium priority to an angry billing complaint is a failure.",
+    "example_input": {
+      "ticket_text": "I've been billed incorrectly for 3 months! I want a full refund and I'm cancelling everything if this isn't fixed TODAY.",
+      "sentiment": "angry"
+    },
+    "example_actions": [
+      {"action_type": "classify_ticket",   "payload": {"classification": "refund"}},
+      {"action_type": "assign_priority",   "payload": {"priority": "high"}},
+      {"action_type": "generate_response", "payload": {"response": "I sincerely apologize for this ongoing billing error — this is completely unacceptable and I understand your frustration. I am immediately processing a full 3-month refund and flagging your account to prevent future errors. A senior account manager will call you within the hour."}}
+    ],
     "actions_required": ["classify_ticket", "assign_priority", "generate_response"],
     "scoring": {
       "classification_correct": 0.25,
-      "priority_high": 0.25,
+      "priority_must_be_high": 0.25,
       "response_empathetic": 0.25,
-      "sentiment_angry_or_panicked": 0.25
+      "sentiment_is_angry_or_panicked": 0.25
     },
+    "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
     "grader": true
   },
   {
     "id": "task_hard_3",
-    "name": "Efficiency Challenge",
+    "name": "SLA Speed Challenge",
     "difficulty": "HARD",
-    "objective": "Complete the full workflow (classify + priority + respond + resolve) in 4 steps or fewer for a speed bonus. Accuracy on each step still matters.",
-    "description": "5-component grader: classification (0.2) + priority (0.2) + response (0.2) + resolve (0.2) + efficiency bonus (0.2 for ≤4 steps, 0.1 for ≤6 steps). Max score = 1.0.",
+    "scenario": "A high-SLA enterprise ticket has arrived — the customer's entire team is blocked and the contract mandates resolution within 5 actions. The agent must complete the full workflow (classify + priority + respond + resolve) accurately AND efficiently. Every extra action wastes SLA budget.",
+    "objective": "5-component score: classification (0.2) + priority (0.2) + response present (0.2) + ticket resolved (0.2) + efficiency bonus: 0.2 for ≤4 steps, 0.1 for ≤6 steps, 0.0 for >6 steps. Maximum achievable score = 1.0.",
+    "description": "Speed + accuracy combined task. A perfect agent scores 1.0 by doing exactly: classify → priority → respond → resolve (4 steps = maximum efficiency bonus). Extra actions (repeating classify, unnecessary escalations) drain the efficiency score. This tests an agent's ability to plan ahead, not just react to each observation.",
+    "example_input": {
+      "ticket_text": "Our entire development team cannot access the API. We have a production deployment in 2 hours.",
+      "sentiment": "panicked"
+    },
+    "example_actions": [
+      {"action_type": "classify_ticket",   "payload": {"classification": "technical_issue"}},
+      {"action_type": "assign_priority",   "payload": {"priority": "high"}},
+      {"action_type": "generate_response", "payload": {"response": "This is our highest priority. Our on-call engineering team has been paged and will resolve your API access within 30 minutes. We will keep you updated every 10 minutes."}},
+      {"action_type": "resolve",           "payload": {}}
+    ],
     "actions_required": ["classify_ticket", "assign_priority", "generate_response", "resolve"],
     "scoring": {
       "classification_correct": 0.2,
       "priority_correct": 0.2,
-      "response_present": 0.2,
+      "response_present_and_meaningful": 0.2,
       "ticket_resolved": 0.2,
-      "efficiency_bonus": 0.2
+      "efficiency_bonus_4_steps": 0.2,
+      "efficiency_partial_6_steps": 0.1
     },
+    "passing_threshold": 0.5,
     "has_grader": true,
     "has_evaluator": true,
     "grader": true

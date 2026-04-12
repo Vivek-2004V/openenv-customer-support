@@ -107,9 +107,10 @@ def get_schema():
     }
 
 
-@app.api_route("/reset", methods=["GET", "POST"], tags=["Environment Control"])
+@app.get("/reset", tags=["Environment Control"], operation_id="reset_env_get")
+@app.post("/reset", tags=["Environment Control"], operation_id="reset_env_post")
 def reset_env():
-    """Reset the environment and yield the initial observation."""
+    """Reset the environment and yield the initial observation (GET or POST)."""
     obs = env_instance.reset()
     return {
         "observation": obs.state,
