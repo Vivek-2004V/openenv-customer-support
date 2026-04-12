@@ -186,5 +186,85 @@
     "has_grader": true,
     "has_evaluator": true,
     "grader": true
+  },
+  {
+    "id": "task_extreme_1",
+    "name": "Policy-Driven Resolution",
+    "difficulty": "HARD",
+    "scenario": "A customer is asking for a refund on a monthly plan they bought 3 days ago. The agent must search the KB to find the refund policy before responding. The policy says monthly plans are non-refundable after 48 hours.",
+    "objective": "Multi-step lookup: (1) search_kb for 'refund policy', (2) classify as 'refund', (3) write a response correctly citing the 48-hour rule.",
+    "description": "Knowledge-intensive task. The agent cannot know the policy facts without using the search_kb tool. The grader checks that search_kb was called and the response contains '48' (referencing the policy limit).",
+    "example_input": {
+      "ticket_text": "I want a refund for my monthly sub. I bought it 3 days ago.",
+      "sentiment": "neutral"
+    },
+    "example_actions": [
+      {"action_type": "search_kb",         "payload": {"query": "refund policy"}},
+      {"action_type": "generate_response", "payload": {"response": "As per our policy, monthly plans are non-refundable after 48 hours. Since it has been 3 days, we cannot offer a refund."}},
+      {"action_type": "resolve",           "payload": {}}
+    ],
+    "actions_required": ["search_kb", "generate_response"],
+    "scoring": {
+      "kb_search_performed": 0.4,
+      "policy_cited_correctly": 0.6
+    },
+    "passing_threshold": 0.5,
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
+  },
+  {
+    "id": "task_extreme_2",
+    "name": "Vague Ticket Clarification",
+    "difficulty": "HARD",
+    "scenario": "A user writes: 'It's not working. Please fix.' — This is too vague to classify. The agent must ask for clarification first.",
+    "objective": "Clarification loop: (1) ask_clarification, (2) classify only after clarification, (3) resolve. Attempting to resolve without clarification leads to a penalty.",
+    "description": "Communication proficiency task. Some tickets are intentionally 'garbage inputs'. A good agent doesn't guess; they clarify. The grader checks that ask_clarification was the first substantive action.",
+    "example_input": {
+      "ticket_text": "Help, something is broken.",
+      "sentiment": "frustrated",
+      "context": "vague"
+    },
+    "example_actions": [
+      {"action_type": "ask_clarification", "payload": {"question": "Could you please provide more details on what exactly is not working?"}},
+      {"action_type": "classify_ticket",   "payload": {"classification": "technical_issue"}},
+      {"action_type": "resolve",           "payload": {}}
+    ],
+    "actions_required": ["ask_clarification", "resolve"],
+    "scoring": {
+      "clarification_requested": 0.5,
+      "properly_resolved": 0.5
+    },
+    "passing_threshold": 0.5,
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
+  },
+  {
+    "id": "task_extreme_3",
+    "name": "High-Stakes Security Breach",
+    "difficulty": "HARD",
+    "scenario": "A customer reports: 'I think my account was hacked! I see login alerts from Russia.' The agent must follow security protocol: search security KB, escalate immediately, and reassure the customer with empathy.",
+    "objective": "High-urgency lifecycle: (1) search_kb for security, (2) assign priority HIGH, (3) escalate (standard closed won't work for P0).",
+    "description": "Protocol compliance task. Security incidents have strict rules. The agent must demonstrate they can follow internal SOPs (Standard Operating Procedures) under pressure. Grader checks priority=HIGH and escalation.",
+    "example_input": {
+      "ticket_text": "My account was hacked! Login from unrecognized location!",
+      "sentiment": "panicked"
+    },
+    "example_actions": [
+      {"action_type": "search_kb",         "payload": {"query": "security protocol"}},
+      {"action_type": "assign_priority",   "payload": {"priority": "high"}},
+      {"action_type": "escalate",          "payload": {}}
+    ],
+    "actions_required": ["search_kb", "assign_priority", "escalate"],
+    "scoring": {
+      "protocol_lookup": 0.3,
+      "priority_triage": 0.3,
+      "proper_escalation": 0.4
+    },
+    "passing_threshold": 0.5,
+    "has_grader": true,
+    "has_evaluator": true,
+    "grader": true
   }
 ]

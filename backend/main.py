@@ -1,12 +1,23 @@
 from fastapi import FastAPI, HTTPException, Query, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 import os
 import json
 from openai import OpenAI
-from server.env import CustomerSupportEnv
-from server.models import Action, Observation, SYSTEM_PROMPT, DEFAULT_MODEL, DEFAULT_API_BASE
-from server.tasks import get_all_tasks
+from .env import CustomerSupportEnv
+from .models import Action, Observation, SYSTEM_PROMPT, DEFAULT_MODEL, DEFAULT_API_BASE
+
+def load_tasks_from_json():
+    """Load tasks from tasks.json strictly."""
+    json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tasks.json")
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, "r") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+TASKS = load_tasks_from_json()
 
 app = FastAPI(
     title="OpenEnv Customer Support API",
@@ -27,13 +38,20 @@ async def favicon():
     return Response(status_code=204)
 
 # AI Configuration
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+# Mandatory Pre-Submission Configuration
+API_KEY = os.getenv("HF_TOKEN")
 API_BASE_URL = os.getenv("API_BASE_URL") or DEFAULT_API_BASE
 MODEL_NAME = os.getenv("MODEL_NAME") or DEFAULT_MODEL
 
-# Global singleton for the environment state lifecycle
-env_instance = CustomerSupportEnv()
+# Global session manager to support concurrent evaluations
+SESSIONS = {}
 ai_client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY) if API_KEY else None
+
+def get_env(session_id: str = "default") -> CustomerSupportEnv:
+    """Retrieve or create an environment instance for a specific session."""
+    if session_id not in SESSIONS:
+        SESSIONS[session_id] = CustomerSupportEnv()
+    return SESSIONS[session_id]
 
 # ───────────────────────────────────────────────────────────────────────────────
 # OpenEnv Standard Endpoints
@@ -66,7 +84,7 @@ def get_schema():
             "properties": {
                 "action_type": {
                     "type": "string",
-                    "enum": ["classify_ticket", "assign_priority", "generate_response", "resolve", "escalate"],
+                    "enum": ["classify_ticket", "assign_priority", "generate_response", "resolve", "escalate", "search_kb", "ask_clarification"],
                     "description": "The type of action to perform on the current ticket."
                 },
                 "payload": {
@@ -95,7 +113,7 @@ def get_schema():
             "properties": {
                 "ticket_text": {"type": "string"},
                 "sentiment": {"type": "string", "enum": ["angry", "neutral", "panicked", "curious", "happy", "concerned"]},
-                "priority": {"type": ["string", "null"], "enum": ["low", "medium", "high", null]},
+                "priority": {"type": ["string", "null"], "enum": ["low", "medium", "high", None]},
                 "status": {"type": "string", "enum": ["open", "closed", "session_complete"]},
                 "classification": {"type": ["string", "null"]},
                 "response": {"type": ["string", "null"]},
@@ -110,95 +128,78 @@ def get_schema():
 
 @app.get("/reset", tags=["Environment Control"], operation_id="reset_env_get")
 @app.post("/reset", tags=["Environment Control"], operation_id="reset_env_post")
-def reset_env():
-    """Reset the environment and yield the initial observation (GET or POST)."""
-    obs = env_instance.reset()
+def reset_env(session_id: str = "default"):
+    """Reset the environment for a specific session."""
+    env = get_env(session_id)
+    obs = env.reset()
     state = obs.state
     return {
         "observation": state,
-        "state": state,  # Legacy compatibility
+        "state": state,
         "reward": 0.0,
-        "done": False
+        "done": False,
+        "session_id": session_id
     }
 
 
 @app.post("/step", tags=["Environment Control"])
-def step_env(action: Action):
-    """Submit an action to process the environment workflow."""
-    # Auto-reset if queue is empty
-    if not env_instance.queue:
-        env_instance.reset()
+def step_env(action: Action, session_id: str = "default"):
+    """Submit an action to a specific session."""
+    env = get_env(session_id)
+    if not env.queue:
+        env.reset()
 
-    obs, reward, done, info = env_instance.step(action)
+    obs, reward, done, info = env.step(action)
     state = obs.state
     return {
         "observation": state,
-        "state": state,  # Legacy compatibility
+        "state": state,
         "reward": float(reward.value),
         "done": bool(done),
-        "info": info
+        "info": info,
+        "session_id": session_id
     }
 
 
 @app.get("/state", tags=["State Management"])
-def get_state():
-    """Retrieve the current deterministic state of the environment."""
-    obs = env_instance.state()   # call ONCE
+def get_state(session_id: str = "default"):
+    """Retrieve the current deterministic state of a session."""
+    env = get_env(session_id)
+    obs = env.state()
     state = obs.state
-    # Auto-reset only if truly no tickets left
     if state.get("status") == "session_complete":
-        obs = env_instance.reset()
+        obs = env.reset()
         state = obs.state
     return {
         "observation": state,
-        "state": state  # Legacy compatibility
+        "state": state,
+        "session_id": session_id
     }
 
 
-# ───────────────────────────────────────────────────────────────────────────────
-# Tasks & Graders  (OpenEnv submission requirement: ≥3 tasks with graders)
-# ───────────────────────────────────────────────────────────────────────────────
-
 @app.get("/tasks", tags=["Environment Info"])
-def get_tasks():
-    """Retrieve all available tasks mapped in the environment.
-
-    The OpenEnv submission system requires at least 3 tasks where
-    ``grader`` is ``true`` and the grader is callable via ``/grader``.
-    """
-    return env_instance.get_tasks()
+def get_tasks(session_id: str = "default"):
+    """Retrieve all available tasks for a session."""
+    env = get_env(session_id)
+    return env.get_tasks()
 
 
 @app.get("/grader", tags=["Environment Info"])
 def run_grader(
-    task_id: str = Query(..., description="Task ID to grade (e.g. 'task_easy_1')")
+    task_id: str = Query(..., description="Task ID to grade (e.g. 'task_easy_1')"),
+    session_id: str = "default"
 ):
-    """Grade a specific task. Returns a score in [0.0, 1.0].
-
-    The HuggingFace OpenEnv submission validator calls this endpoint for
-    each task that declares ``grader: true``.  The score **must** be in the
-    closed interval [0.0, 1.0].
-    """
-    # Resolve task metadata
-    tasks = env_instance.get_tasks()
+    """Grade a specific task for a session."""
+    env = get_env(session_id)
+    tasks = env.get_tasks()
     task_meta = next((t for t in tasks if t["id"] == task_id), None)
     if task_meta is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Task '{task_id}' not found. Available: {[t['id'] for t in tasks]}"
-        )
+        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found.")
 
     if not task_meta.get("grader"):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Task '{task_id}' does not have a grader."
-        )
+        raise HTTPException(status_code=400, detail=f"Task '{task_id}' does not have a grader.")
 
-    # Build a representative episode state to grade against
     difficulty = task_meta.get("difficulty", "EASY")
-
-    # Use a known-good mock state to produce a deterministic score
-    # that demonstrates the grader works correctly.
     mock_state = _build_mock_state(difficulty)
     ground_truth = {
         "expected_classification": "refund",
@@ -207,8 +208,7 @@ def run_grader(
     }
 
     try:
-        score = env_instance.grade(task_id, [{"state": mock_state}], ground_truth)
-        # Clamp to [0.0, 1.0] strictly
+        score = env.grade(task_id, [{"state": mock_state}], ground_truth)
         score = float(max(0.0, min(1.0, score)))
         return {
             "task_id": task_id,
@@ -219,31 +219,23 @@ def run_grader(
             "difficulty": difficulty,
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Grader execution failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Grader execution failed: {str(e)}")
 
 
 def _build_mock_state(difficulty: str) -> dict:
     """Build a near-perfect mock state for deterministic grader testing."""
-    base = {
+    return {
         "ticket_text": "I bought a premium subscription but it's not working. I want my money back right now!",
         "sentiment": "angry",
         "classification": "refund",
         "priority": "high",
-        "response": "I am so sorry for the inconvenience. We completely understand your frustration and will help resolve this immediately.",
+        "response": "I am so sorry for the inconvenience. We completely understand your frustration.",
         "status": "closed",
         "queue_size": 0,
         "resolved": 1,
         "total_reward": 0.8,
     }
-    return base
 
-
-# ───────────────────────────────────────────────────────────────────────────────
-# MCP endpoint (required by OpenEnv runtime validator for full compliance)
-# ───────────────────────────────────────────────────────────────────────────────
 
 @app.post("/mcp", tags=["Environment Info"])
 async def mcp_endpoint(request: Request):
@@ -256,7 +248,6 @@ async def mcp_endpoint(request: Request):
     method = body.get("method", "")
     req_id = body.get("id", 1)
 
-    # Respond to initialize / tools/list
     if method == "initialize":
         return {
             "jsonrpc": "2.0",
@@ -275,7 +266,7 @@ async def mcp_endpoint(request: Request):
                 "tools": [
                     {
                         "name": "step",
-                        "description": "Take a step in the customer support environment",
+                        "description": "Take a step in the customer support environment. Available actions: classify_ticket, assign_priority, generate_response, search_kb, ask_clarification, resolve, escalate.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
@@ -288,23 +279,15 @@ async def mcp_endpoint(request: Request):
             }
         }
     else:
-        # Default passthrough — return empty result
-        return {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "result": {}
-        }
+        return {"jsonrpc": "2.0", "id": req_id, "result": {}}
 
-
-# ───────────────────────────────────────────────────────────────────────────────
-# Bonus / convenience endpoints
-# ───────────────────────────────────────────────────────────────────────────────
 
 @app.get("/baseline", tags=["Environment Control"])
-def run_baseline():
-    """Execute a hardcoded 'perfect' baseline workflow to trace rewards."""
-    if not env_instance.queue:
-        env_instance.reset()
+def run_baseline(session_id: str = "default"):
+    """Execute a hardcoded 'perfect' baseline workflow in isolation."""
+    env = get_env(session_id)
+    if not env.queue:
+        env.reset()
 
     gt = env_instance.ground_truth
 
@@ -330,14 +313,16 @@ def run_baseline():
     return {
         "message": "Baseline ideal sequence successfully executed against ground truth.",
         "trace": trace_results,
-        "final_state": env_instance.current_state
+        "final_state": env.current_state,
+        "session_id": session_id
     }
 
 
 @app.get("/predict", tags=["Environment Control"])
-async def predict_action():
+async def predict_action(session_id: str = "default"):
     """Ask the AI Model to suggest the next logical action for the current ticket."""
-    if env_instance.current_state is None or not env_instance.queue:
+    env = get_env(session_id)
+    if env.current_state is None or not env.queue:
         raise HTTPException(status_code=400, detail="No active session or queue is empty.")
 
     if not ai_client:
@@ -348,7 +333,7 @@ async def predict_action():
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"Current State: {json.dumps(env_instance.current_state)}"}
+                {"role": "user", "content": f"Current State: {json.dumps(env.current_state)}"}
             ],
             temperature=0.0,
             response_format={"type": "json_object"}
@@ -358,19 +343,10 @@ async def predict_action():
         raise HTTPException(status_code=500, detail=f"LLM Prediction failed: {str(e)}")
 
 
-# Mount static files for the built frontend
-static_dir = os.path.join(os.getcwd(), "static")
-if os.path.exists(static_dir):
-    print(f"✅ Frontend static files detected at {static_dir}. Mounting...")
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
-else:
-    print("⚠️ Warning: Static directory not found. Frontend will not be served.")
-
-
 def main():
     import uvicorn
-    print("🚀 Starting OpenEnv Customer Support - Backend & Frontend initialization...")
-    uvicorn.run("server.app:app", host="0.0.0.0", port=7860, reload=False, log_level="info")
+    print("🚀 Starting OpenEnv Customer Support Backend...")
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=7860, reload=False, log_level="info")
 
 
 if __name__ == "__main__":

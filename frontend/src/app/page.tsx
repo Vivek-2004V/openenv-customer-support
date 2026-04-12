@@ -104,10 +104,10 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Step failed.");
 
-      const obs = data.observation || data.state;
+      const obs = data.observation || data.state || data;
       setState(obs);
 
-      if (obs.status === "session_complete") {
+      if (obs?.status === "session_complete") {
         addLog('🎉 Session Complete!', 'system');
         showStatus("Session finished!", "success");
       } else {
@@ -178,16 +178,16 @@ export default function Home() {
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Starting Engine</h2>
                 <p style={{ color: 'var(--muted)' }}>Connecting to backend... Attempt {bootAttempt}</p>
               </div>
-            ) : state && state.status !== "session_complete" ? (
+            ) : state && state?.status !== "session_complete" ? (
               <div style={{ display: 'grid', gap: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                    <div style={{ flex: 1 }}>
                     <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>Current Ticket</span>
-                    <p style={{ marginTop: '0.5rem', fontSize: '1.4rem', fontWeight: 600 }}>"{state.ticket_text}"</p>
+                    <p style={{ marginTop: '0.5rem', fontSize: '1.4rem', fontWeight: 600 }}>"{state?.ticket_text || 'Loading...'}"</p>
                   </div>
                   <div style={{ textAlign: 'right', minWidth: '100px' }}>
                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--muted)' }}>SLA</div>
-                     <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{state.steps_taken || 0} / {state.sla_limit || 10}</div>
+                     <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{state?.steps_taken || 0} / {state?.sla_limit || 10}</div>
                   </div>
                 </div>
                 
@@ -195,12 +195,12 @@ export default function Home() {
                   {['sentiment', 'priority', 'status'].map(key => (
                     <div key={key} className="glass-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>{key}</div>
-                      <div className={`badge badge-${state[key] || 'neutral'}`} style={{ fontSize: '0.7rem', marginTop: '0.25rem' }}>{state[key] || 'OPEN'}</div>
+                      <div className={`badge badge-${state?.[key] || 'neutral'}`} style={{ fontSize: '0.7rem', marginTop: '0.25rem' }}>{state?.[key] || 'OPEN'}</div>
                     </div>
                   ))}
                   <div className="glass-card" style={{ padding: '0.75rem', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Reward</div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary)' }}>+{(state.total_reward || 0).toFixed(2)}</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 900, color: 'var(--primary)' }}>+{(state?.total_reward || 0).toFixed(2)}</div>
                   </div>
                 </div>
               </div>
@@ -209,8 +209,8 @@ export default function Home() {
                 <div style={{ fontSize: '4rem' }}>🎉</div>
                 <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Queue Completed</h2>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem', marginTop: '2rem' }}>
-                   <div><div style={{ color: 'var(--muted)', fontWeight: 700 }}>RESOLVED</div><div style={{ fontSize: '2rem', fontWeight: 900 }}>{state.resolved}</div></div>
-                   <div><div style={{ color: 'var(--muted)', fontWeight: 700 }}>TOTAL REWARD</div><div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--primary)' }}>{state.total_reward?.toFixed(2)}</div></div>
+                    <div><div style={{ color: 'var(--muted)', fontWeight: 700 }}>RESOLVED</div><div style={{ fontSize: '2rem', fontWeight: 900 }}>{state?.resolved || 0}</div></div>
+                    <div><div style={{ color: 'var(--muted)', fontWeight: 700 }}>TOTAL REWARD</div><div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--primary)' }}>{(state?.total_reward || 0).toFixed(2)}</div></div>
                 </div>
                 <button className="btn" style={{ marginTop: '2rem' }} onClick={resetEnv}>Start New Session</button>
               </div>

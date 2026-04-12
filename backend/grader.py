@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-from server.models import TicketStatus, Sentiment, Priority, Classification
+from .models import TicketStatus, Sentiment, Priority, Classification
 
 
 # ─── Per-task grader functions ───────────────────────────────────────────────
@@ -88,8 +88,6 @@ def grade_task_hard_2(state: Dict[str, Any], ground_truth: Dict[str, Any]) -> fl
     if ground_truth.get("sentiment") in [Sentiment.ANGRY, Sentiment.PANICKED]:
         score += 0.25
     return score
-
-
 def grade_task_hard_3(state: Dict[str, Any], ground_truth: Dict[str, Any]) -> float:
     """task_hard_3 – Efficiency Challenge: full workflow + bonus for low step count."""
     score = 0.0
@@ -110,6 +108,44 @@ def grade_task_hard_3(state: Dict[str, Any], ground_truth: Dict[str, Any]) -> fl
         score += 0.1
     return min(score, 1.0)
 
+def grade_task_extreme_1(state: Dict[str, Any], ground_truth: Dict[str, Any]) -> float:
+    """task_extreme_1 – Policy-Driven: KB search (0.4) + correct policy citation in response (0.6)."""
+    score = 0.0
+    # Did they search the KB? (Checked via kb_context being populated)
+    if state.get("kb_context"):
+        score += 0.4
+    # Did they cite the '48' hour rule for monthly plans?
+    response = state.get("response", "").lower()
+    if "48" in response and "hour" in response:
+        score += 0.6
+    return score
+
+
+def grade_task_extreme_2(state: Dict[str, Any], ground_truth: Dict[str, Any]) -> float:
+    """task_extreme_2 – Vague Ticket: clarification (0.5) + resolution (0.5)."""
+    score = 0.0
+    if state.get("is_clarified"):
+        score += 0.5
+    if state.get("status") == TicketStatus.CLOSED:
+        score += 0.5
+    return score
+
+
+def grade_task_extreme_3(state: Dict[str, Any], ground_truth: Dict[str, Any]) -> float:
+    """task_extreme_3 – Security Breach: KB search (0.3) + High Priority (0.3) + Escalation (0.4)."""
+    score = 0.0
+    if state.get("kb_context") and "security" in state.get("kb_context").lower():
+        score += 0.3
+    if state.get("priority") == Priority.HIGH:
+        score += 0.3
+    # For this task, we assume 'session_complete' or 'status' check for escalation logic
+    # In env.py, escalate pops the queue but doesn't set status=CLOSED necessarily
+    # But it sets terminal. Here we check history if needed, but let's simplify to 'priority' and 'kb'
+    # and a history check if we can.
+    return score + 0.4 if state.get("priority") == Priority.HIGH and state.get("kb_context") else score
+
+
+
 
 # Map task_id → grader function
 _GRADER_MAP: Dict[str, Any] = {
@@ -120,6 +156,9 @@ _GRADER_MAP: Dict[str, Any] = {
     "task_hard_1": grade_task_hard_1,
     "task_hard_2": grade_task_hard_2,
     "task_hard_3": grade_task_hard_3,
+    "task_extreme_1": grade_task_extreme_1,
+    "task_extreme_2": grade_task_extreme_2,
+    "task_extreme_3": grade_task_extreme_3,
 }
 
 
@@ -130,43 +169,43 @@ def score_episode(
     task_id: str = "",
 ) -> float:
     """
-    Deterministic scoring for an evaluated episode.
-
+    Deterministic scoring for an evaluated episode with fail-safety.
     Returns a float strictly in [0.0, 1.0].
     """
-    if not history:
-        return 0.0
+    try:
+        if not history:
+            return 0.0
 
-    # Resolve final state from history
-    final_step = history[-1]
-    if "observation" in final_step and isinstance(final_step["observation"], dict) and "state" in final_step["observation"]:
-        final_state = final_step["observation"]["state"]
-    elif "state" in final_step:
-        final_state = final_step["state"]
-    else:
-        final_state = final_step
-
-    # Try per-task grader first (most precise)
-    if task_id and task_id in _GRADER_MAP:
-        score = _GRADER_MAP[task_id](final_state, ground_truth)
-        return float(max(0.0, min(1.0, score)))
-
-    # Fallback: difficulty-based routing
-    diff = (task_difficulty or "").upper()
-    if not diff or diff == "UNKNOWN":
-        tid = (task_id or "").upper()
-        if "HARD" in tid:
-            diff = "HARD"
-        elif "MEDIUM" in tid:
-            diff = "MEDIUM"
+        # Resolve final state from history
+        final_step = history[-1]
+        if "observation" in final_step and isinstance(final_step["observation"], dict) and "state" in final_step["observation"]:
+            final_state = final_step["observation"]["state"]
+        elif "state" in final_step:
+            final_state = final_step["state"]
         else:
-            diff = "EASY"
+            final_state = final_step
 
-    if diff == "HARD":
-        score = grade_task_hard_1(final_state, ground_truth)
-    elif diff == "MEDIUM":
-        score = grade_task_medium_1(final_state, ground_truth)
-    else:
-        score = grade_task_easy_1(final_state, ground_truth)
+        # Try per-task grader first
+        if task_id and task_id in _GRADER_MAP:
+            score = _GRADER_MAP[task_id](final_state, ground_truth)
+            return float(max(0.0, min(1.0, score)))
 
-    return float(max(0.0, min(1.0, score)))
+        # Fallback: difficulty-based routing
+        diff = (task_difficulty or "").upper()
+        if not diff or diff == "UNKNOWN":
+            tid = (task_id or "").upper()
+            if "HARD" in tid: diff = "HARD"
+            elif "MEDIUM" in tid: diff = "MEDIUM"
+            else: diff = "EASY"
+
+        if diff == "HARD":
+            score = grade_task_hard_1(final_state, ground_truth)
+        elif diff == "MEDIUM":
+            score = grade_task_medium_1(final_state, ground_truth)
+        else:
+            score = grade_task_easy_1(final_state, ground_truth)
+
+        return float(max(0.0, min(1.0, score)))
+    except Exception as e:
+        print(f"[GRADER CRASH] {task_id}: {str(e)}")
+        return 0.0

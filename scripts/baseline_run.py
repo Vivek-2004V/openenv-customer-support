@@ -6,8 +6,8 @@ from typing import Dict, Any
 # Ensure project root is in path
 sys.path.append(os.getcwd())
 
-from server.env import CustomerSupportEnv
-from server.models import Action, TicketStatus
+from backend.env import CustomerSupportEnv
+from backend.models import Action, TicketStatus
 
 def run_baseline():
     print("🚀 [BASELINE] Starting Real-world Support Workflow Demo...")

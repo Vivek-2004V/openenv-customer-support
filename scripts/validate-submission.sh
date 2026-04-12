@@ -46,7 +46,7 @@ if ! curl -s --max-time 2 "$BASE/health" > /dev/null 2>&1; then
   fi
 
   # Start server in background using .venv
-  $PY -m uvicorn server.app:app --host 0.0.0.0 --port "$PORT" --log-level warning &
+  $PY -m uvicorn backend.main:app --host 0.0.0.0 --port "$PORT" --log-level warning &
   SERVER_PID=$!
   SERVER_STARTED=true
 
@@ -63,7 +63,7 @@ if ! curl -s --max-time 2 "$BASE/health" > /dev/null 2>&1; then
 
   if [ "$READY" = false ]; then
     echo -e "${RED}❌ Server failed to start after 20s${NC}"
-    echo "   Check: cd openenv-customer-support && .venv/bin/python -m uvicorn server.app:app --port $PORT"
+    echo "   Check: cd openenv-customer-support && .venv/bin/python -m uvicorn backend.main:app --port $PORT"
     kill $SERVER_PID 2>/dev/null
     exit 1
   fi

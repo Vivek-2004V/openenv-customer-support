@@ -5,12 +5,11 @@ import asyncio
 from typing import List, Optional
 from openai import OpenAI
 
-from server.env import CustomerSupportEnv
-from server.models import Action, SYSTEM_PROMPT, DEFAULT_MODEL, DEFAULT_API_BASE
+from backend.env import CustomerSupportEnv
+from backend.models import Action, SYSTEM_PROMPT, DEFAULT_MODEL, DEFAULT_API_BASE
 
 # Mandatory Environment Configuration
-HF_TOKEN = os.getenv("HF_TOKEN")
-API_KEY = HF_TOKEN or os.getenv("API_KEY")
+API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 API_BASE_URL = os.getenv("API_BASE_URL") or DEFAULT_API_BASE
 MODEL_NAME = os.getenv("MODEL_NAME") or DEFAULT_MODEL
 

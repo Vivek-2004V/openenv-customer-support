@@ -11,8 +11,7 @@ sys.path.append(os.getcwd())
 def test_internal_logic():
     print("🔍 [TEST] Internal Logic & Task Enumeration...")
     try:
-        from server.env import CustomerSupportEnv
-        from server.tasks import TASKS
+        from backend.env import CustomerSupportEnv, TASKS
     except ImportError as e:
         print(f"❌ Error: Could not import environment components: {e}")
         return False
@@ -56,7 +55,7 @@ def test_endpoints():
     print("🔍 [TEST] API Endpoints...")
     
     # Start the server
-    cmd = [sys.executable, "-m", "uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7861"]
+    cmd = [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "7861"]
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
     time.sleep(5) # Wait for server

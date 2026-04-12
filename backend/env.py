@@ -1,9 +1,23 @@
 from __future__ import annotations
 import random
 import copy
+import os
+import json
 from typing import Tuple, List, Dict, Any
-from server.models import Action, Observation, Reward, TicketStatus, StepStatus, Sentiment, Priority, Classification
-from server.tasks import TASKS
+from .models import Action, Observation, Reward, TicketStatus, StepStatus, Sentiment, Priority, Classification
+
+def load_tasks_from_json():
+    """Load tasks from tasks.json strictly."""
+    json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tasks.json")
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, "r") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+TASKS = load_tasks_from_json()
 
 # ── Real-world customer support scenarios ─────────────────────────────────────
 SCENARIOS = [
@@ -101,10 +115,28 @@ SCENARIOS = [
         "expected_classification": Classification.FEEDBACK,
         "expected_priority": Priority.LOW,
         "sla_steps": 15,
-        "context": "Positive feedback. No action needed urgently.",
     },
 ]
 
+# ── Internal Knowledge Base (Product Policies) ───────────────────────────────
+KNOWLEDGE_BASE = {
+    "refund_policy": {
+        "text": "Full refunds are allowed within 30 days for annual plans. Monthly plans are non-refundable after 48 hours. Enterprise contracts require management approval for any deviation.",
+        "keywords": ["refund", "money back", "billing", "policy"]
+    },
+    "security_protocol": {
+        "text": "For suspected breaches, immediately lock the account and escalate to the Security Team. Do NOT share recovery links via ticket. Multi-factor authentication is mandatory for all admins.",
+        "keywords": ["security", "breach", "hack", "compromised", "login"]
+    },
+    "technical_specs": {
+        "text": "Export to CSV is limited to 500MB per file. Browser support: Chrome, Firefox, Safari (latest 2 versions). Mobile app requires iOS 15+ or Android 12+.",
+        "keywords": ["export", "csv", "crash", "bug", "requirement", "specs"]
+    },
+    "discount_policy": {
+        "text": "Registered charities (501c3) get 40% off. Academic institutions get 20% off. Volume discounts start at 50 user seats.",
+        "keywords": ["discount", "charity", "non-profit", "price", "cheap"]
+    }
+}
 
 class CustomerSupportEnv:
     def __init__(self):
@@ -115,6 +147,8 @@ class CustomerSupportEnv:
         self.current_step = 0
         self.actions_taken: set = set()
         self.history: List[Dict] = []
+        self.kb_search_result: str | None = None
+        self.is_clarified: bool = False
 
     def reset(self) -> Observation:
         """Standard OpenEnv API: Initialize a new session with a queue of 3 tickets."""
@@ -124,6 +158,8 @@ class CustomerSupportEnv:
         self.current_step = 0
         self.actions_taken = set()
         self.history = []
+        self.kb_search_result = None
+        self.is_clarified = False
         return self.state()
 
     def state(self) -> Observation:
@@ -163,6 +199,8 @@ class CustomerSupportEnv:
             "total_reward": self.total_reward,
             "resolved": self.resolved_count,
             "last_step_status": self.history[-1]["status"] if self.history else StepStatus.NEUTRAL,
+            "kb_context": self.kb_search_result,
+            "is_clarified": self.is_clarified,
             "info": current_info,
         }
         return Observation(state=obs_state, info=current_info)
@@ -189,7 +227,7 @@ class CustomerSupportEnv:
 
     def grade_task(self, task_id: str, history: List[Dict[str, Any]], ground_truth: Dict[str, Any]) -> float:
         """Grade a specific task execution. Returns float in [0.0, 1.0]."""
-        from server.grader import score_episode
+        from .grader import score_episode
 
         diff = "EASY"
         for t in TASKS:
@@ -256,30 +294,69 @@ class CustomerSupportEnv:
                 else:
                     message = "✅ Response drafted."
 
-        elif a_type == "resolve":
-            has_classify = bool(current_ticket.get("classification"))
-            has_priority = bool(current_ticket.get("priority"))
-            has_response = bool(current_ticket.get("response"))
-
-            if has_classify and has_priority and has_response:
-                reward_val += 0.4
-                current_ticket["status"] = TicketStatus.CLOSED
-                self.resolved_count += 1
-                message = "✅ Ticket fully resolved!"
-                # SLA penalty
-                if self.current_step > current_ticket["sla_steps"]:
-                    reward_val -= 0.25
-                    message += " ⚠️ SLA breached."
+        elif a_type == "search_kb":
+            query = payload.get("query", "").lower()
+            if not query:
+                reward_val -= 0.1
+                message = "❌ Empty KB query."
             else:
-                missing = [k for k, v in [("classification", has_classify), ("priority", has_priority), ("response", has_response)] if not v]
-                reward_val -= 0.2
-                message = f"❌ Cannot resolve — missing: {', '.join(missing)}."
+                found = False
+                for key, data in KNOWLEDGE_BASE.items():
+                    if any(k in query for k in data["keywords"]):
+                        self.kb_search_result = f"POLICY: {data['text']}"
+                        reward_val += 0.15
+                        message = f"✅ KB result found for '{key}'."
+                        found = True
+                        break
+                if not found:
+                    reward_val -= 0.05
+                    message = f"❓ No KB results for '{query}'."
 
-            self.queue.pop(0)
-            self.current_step = 0
-            self.actions_taken = set()
-            if not self.queue:
-                is_terminal = True
+        elif a_type == "ask_clarification":
+            self.is_clarified = True
+            reward_val += 0.1
+            message = "✅ Clarification requested from customer."
+
+        # ── Action: Resolve ──────────────────────────────────────────────────
+        elif a_type == "resolve":
+            if current_ticket["status"] == TicketStatus.CLOSED:
+                reward_val += 0.0
+                message = "⚠️ Ticket is already closed."
+            else:
+                has_classify = bool(current_ticket.get("classification"))
+                has_priority = bool(current_ticket.get("priority"))
+                has_response = bool(current_ticket.get("response"))
+                
+                # Check for vague tickets that require clarification
+                needs_clarify = "vague" in current_ticket.get("context", "").lower()
+                if needs_clarify and not self.is_clarified:
+                    reward_val -= 0.4
+                    message = "❌ Cannot resolve — ticket details are vague, you must 'ask_clarification' first."
+                elif has_classify and has_priority and has_response:
+                    reward_val += 0.4
+                    current_ticket["status"] = TicketStatus.CLOSED
+                    self.resolved_count += 1
+                    message = "✅ Ticket fully resolved!"
+                    # SLA penalty
+                    if self.current_step > current_ticket["sla_steps"]:
+                        reward_val -= 0.25
+                        message += " ⚠️ SLA breached."
+                else:
+                    missing = []
+                    if not has_classify: missing.append("classification")
+                    if not has_priority: missing.append("priority")
+                    if not has_response: missing.append("response")
+                    reward_val -= 0.2
+                    message = f"❌ Cannot resolve — missing: {', '.join(missing)}."
+            
+            if current_ticket["status"] == TicketStatus.CLOSED:
+                self.queue.pop(0)
+                self.current_step = 0
+                self.actions_taken = set()
+                self.kb_search_result = None
+                self.is_clarified = False
+                if not self.queue:
+                    is_terminal = True
 
         elif a_type == "escalate":
             if current_ticket["sentiment"] in (Sentiment.ANGRY, Sentiment.PANICKED):
@@ -304,10 +381,18 @@ class CustomerSupportEnv:
             message += " (Repeated action penalty)"
         self.actions_taken.add(a_type)
 
-        # Small per-step cost to encourage efficiency
-        reward_val -= 0.02
+        # ── Dynamic Sentiment Decay ──
+        # Every 3 steps without resolution, sentiment worsens
+        if self.current_step > 0 and self.current_step % 3 == 0:
+            s_levels = [Sentiment.HAPPY, Sentiment.CURIOUS, Sentiment.NEUTRAL, Sentiment.CONCERNED, Sentiment.ANGRY, Sentiment.PANICKED]
+            current_idx = s_levels.index(current_ticket["sentiment"]) if current_ticket["sentiment"] in s_levels else 2
+            if current_idx < len(s_levels) - 1:
+                current_ticket["sentiment"] = s_levels[current_idx + 1]
+                message += f" ⚠️ Customer getting frustrated ({current_ticket['sentiment']})."
+                reward_val -= 0.05
 
-        self.total_reward += reward_val
+        # Update aggregate reward
+        self.total_reward += float(reward_val)
         status = StepStatus.SUCCESS if reward_val > 0 else StepStatus.FAILED if reward_val < 0 else StepStatus.NEUTRAL
 
         self.history.append({
@@ -325,3 +410,7 @@ class CustomerSupportEnv:
         }
 
         return self.state(), Reward(value=reward_val, is_terminal=is_terminal), is_terminal, step_info
+
+    def close(self):
+        """Cleanup resources if needed."""
+        pass

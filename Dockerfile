@@ -28,7 +28,7 @@ ENV HOME=/home/user \
 WORKDIR $HOME/app
 
 # ── Python dependencies (cached layer) ───────────────────────
-COPY --chown=user requirements.txt .
+COPY --chown=user backend/requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # ── Application source ────────────────────────────────────────
@@ -42,7 +42,7 @@ EXPOSE ${PORT}
 
 # ── Start server ──────────────────────────────────────────────
 # Uses uvicorn for production-grade ASGI serving
-CMD ["python3", "-m", "uvicorn", "server.app:app", \
+CMD ["python3", "-m", "uvicorn", "backend.main:app", \
      "--host", "0.0.0.0", \
      "--port", "7860", \
      "--log-level", "info", \

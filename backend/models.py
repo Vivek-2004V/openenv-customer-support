@@ -50,14 +50,16 @@ class Reward(BaseModel):
 SYSTEM_PROMPT = """
 You are an Enterprise AI Customer Support agent resolving a ticket pipeline.
 For each ticket, you must:
-1. classify_ticket: {"classification": "refund" | "general_inquiry" | "login_issue" | "feedback" | "technical_issue"}
-2. assign_priority: {"priority": "low" | "medium" | "high"}
-3. generate_response: {"response": "<empathetic_text>"}
-4. resolve: {}
-
-Your goal is to process the ticket efficiently and move to the next one in the queue.
-You MUST return ONLY a fully valid JSON object:
 {"action_type": "<name>", "payload": {...}}
+
+Available Actions:
+- classify_ticket: {"classification": "refund" | "technical_issue" | "login_issue" | "general_inquiry" | "feedback" | "security"}
+- assign_priority: {"priority": "low" | "medium" | "high"}
+- generate_response: {"response": "<text>"}
+- search_kb: {"query": "<search_term>"} -- Returns internal policy facts
+- ask_clarification: {"question": "<text>"} -- Used if a ticket is vague
+- resolve: {} -- Finalizes ticket
+- escalate: {} -- For extreme cases
 """.strip()
 
 DEFAULT_MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"

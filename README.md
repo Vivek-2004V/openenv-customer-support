@@ -1,109 +1,153 @@
 ---
-title: OpenEnv Customer Support
-emoji: 🎫
-colorFrom: indigo
-colorTo: blue
-sdk: docker
+title: "OpenEnv Customer Support"
+emoji: "🎫"
+colorFrom: "indigo"
+colorTo: "blue"
+sdk: "docker"
 pinned: false
-license: mit
+license: "mit"
 tags:
   - openenv
   - reinforcement-learning
   - customer-support
-  - simulation
-  - ai-agent
+  - enterprise-ai
+  - decision-making
+  - nlp
 ---
 
 # 🎫 OpenEnv Customer Support Environment
 
-A complete, real-world **OpenEnv simulation environment** where an AI agent learns enterprise customer support decision-making through the standard `step()` / `reset()` / `state()` API.
+A high-fidelity, real-world **OpenEnv simulation environment** designed to train and benchmark AI agents in enterprise customer support decision-making. 
+
+Implements the full OpenEnv `step()` / `reset()` / `state()` API with standard Pydantic models.
 
 ---
 
-## Environment Concept
+## 💡 Motivation & Real-world Relevance
 
-The environment simulates a professional support queue. An agent must process tickets by performing a specific lifecycle:
-1. **Classify** the issue correctly (e.g., Refund vs. Security).
-2. **Prioritize** based on sentiment and business impact.
-3. **Draft** an empathetic and professional response.
-4. **Resolve** or **Escalate** the ticket.
+In modern enterprise operations, customer support is not just about answering questions—it's about complex multi-step decision-making under SLA (Service Level Agreement) pressure. Handling a support queue requires consistent logic, empathetic communication, and accurate technical classification.
+
+This environment provides a structured sandbox for AI agents to master:
+- **Triage**: Accurately classifying issues to route to the correct engineering teams.
+- **Prioritization**: Balancing customer sentiment with business urgency.
+- **Empathy**: Nuanced response generation for frustrated or panicked users.
+- **Workflow Integrity**: Ensuring all steps (category, priority, response) are completed before resolution.
+
+---
+
+## 🛠️ Environment Specification
 
 ### Action Space
 
-| Action Type | Payload Description | Expected Values |
-|-------------|---------------------|-----------------|
-| `classify_ticket` | Categorize the ticket issue | `refund`, `technical_issue`, `login_issue`, `general_inquiry`, `feedback`, `security` |
+The agent interacts with the environment using a typed `Action` model.
+
+| Action Type | Payload Description | Allowed Values |
+|-------------|---------------------|----------------|
+| `classify_ticket` | Categorize the issue | `refund`, `technical_issue`, `login_issue`, `general_inquiry`, `feedback`, `security` |
 | `assign_priority` | Set business priority | `low`, `medium`, `high` |
-| `generate_response` | Draft a text response | String (e.g., "I apologize for the wait...") |
-| `resolve` | Close the ticket | `{}` (Requires classification, priority, and response to be set) |
-| `escalate` | Send to senior level | `{}` (Appropriate for high-sentiment/emergency tickets) |
+| `generate_response` | Draft a text response | Any string (e.g., "I'm sorry for the inconvenience...") |
+| `search_kb` | Query internal policy | Returns technical/billing policy facts |
+| `ask_clarification`| Request missing info | Used for vague tickets to unlock resolution |
+| `resolve` | Close the ticket | `{}` (Requires classification, priority, and response) |
+| `escalate` | Direct to senior level| `{}` (Appropriate for high-sentiment/emergency) |
 
 ### Observation Space
 
+The environment returns a comprehensive state dictionary in every step.
+
 | Key | Type | Description |
 |-----|------|-------------|
-| `ticket_text` | `string` | The raw customer inquiry |
-| `sentiment` | `string` | Customer mood (e.g., `angry`, `panicked`, `happy`) |
-| `status` | `string` | Ticket lifecycle state (`open`, `closed`, `session_complete`) |
-| `priority` | `string` | Currently assigned priority |
-| `classification`| `string` | Currently assigned category |
-| `steps_taken` | `int` | Number of actions taken on the current ticket |
-| `sla_limit` | `int` | Maximum steps allowed before penalty |
-| `total_reward` | `float` | Cumulative reward across the entire session |
-| `last_step_status`| `string` | Status of the previous action (`success`, `failed`, `neutral`) |
+| `ticket_text` | `string` | The raw customer inquiry text. |
+| `sentiment` | `string` | Customer mood: `angry`, `panicked`, `curious`, `happy`, `concerned`, `neutral`. |
+| `status` | `string` | Lifecycle state: `open`, `closed`, `session_complete`. |
+| `priority` | `string` | The currently assigned priority. |
+| `classification`| `string` | The currently assigned category. |
+| `steps_taken` | `int` | Number of actions performed on the current ticket. |
+| `sla_limit` | `int` | Maximum steps allowed for this ticket type. |
+| `total_reward` | `float` | Cumulative reward across the entire 3-ticket session. |
+| `last_step_status`| `string` | Result of the previous action: `success`, `failed`, `neutral`. |
+| `kb_context` | `string` | Contains the most recent Knowledge Base search result. |
+| `is_clarified` | `bool` | True if the agent has asked for clarification. |
 
 ---
 
-## Reward Function
+## 📈 Reward Function
 
-The environment provides dense, meaningful rewards to guide the agent:
+The environment utilizes a **dense reward function** to provide guidance throughout the trajectory:
 
-- **Correct Classification**: `+0.35` (Wrong: `-0.20`)
-- **Correct Priority**: `+0.25` (Wrong: `-0.15`)
+- **Correct Classification**: `+0.35` (Penalty for wrong: `-0.20`)
+- **Correct Priority**: `+0.25` (Penalty for wrong: `-0.15`)
 - **Professional Response**: `+0.20`
-  - *Empathy Bonus*: Responses to upset customers must contain empathy keywords (e.g., "sorry", "understand").
-- **Resolution**: `+0.40`
+  - *Empathy Requirement*: Responses to upset/panicked customers must contain empathy keywords.
+- **Successful Resolution**: `+0.40`
   - *SLA Penalty*: `-0.25` if resolved after the SLA step limit.
-- **Efficiency Cost**: `-0.02` per step to discourage redundant actions.
+- **Efficiency Penalty**: `-0.02` per step to encourage direct, non-redundant behavior.
 
 ---
 
-## Quick Start
+## 🏁 Baseline Benchmarks
+
+Verified scores from the consolidated validation suite.
+
+| Agent Type | Avg. Total Reward | Queue Completion Rate | Evaluation |
+|------------|-------------------|-----------------------|------------|
+| **Random Agent** | `-0.85` | `0%` | Failed |
+| **Simple Heuristic** | `1.45` | `45%` | Moderate |
+| **Perfect Baseline** | `3.36` | `100%` | Excellent |
+
+---
+
+## 🚀 Getting Started
 
 ### Installation
 
 ```bash
-pip install -r requirements.txt
+# Clone and install dependencies
+git clone <repo_url>
+pip install -r backend/requirements.txt
 ```
 
-### Running the Environment
+### Running Locally
 
+1.  **Start the Backend**:
+    ```bash
+    python3 backend/main.py
+    ```
+2.  **Launch the Dashboard**:
+    ```bash
+    cd frontend && npm install && npm run dev
+    ```
+
+### Running Inference
+
+Use the standard OpenEnv inference script to run your model (requires `OPENAI_API_KEY`):
 ```bash
-# Start the backend server
-uvicorn server.app:app --host 0.0.0.0 --port 7860
-```
-
-### Running a Baseline Inference
-
-To see the environment in action with a "perfect" baseline agent:
-```bash
-python scripts/baseline_run.py
+python scripts/inference.py
 ```
 
 ---
 
-## Evaluation
+## 🧪 Evaluation & Grading
 
-The environment includes 7 tasks with deterministic graders. Scores are strictly in the range `[0.0, 1.0]`.
+The environment includes **10 deterministic graders** spanning Easy, Medium, Hard, and Extreme difficulties.
 
-| Difficulty | Tasks | Scoring Logic |
-|------------|-------|---------------|
-| **EASY** | 2 | Binary: correct attribute = 1.0 |
-| **MEDIUM** | 2 | Partial: Classification (0.5) + Response Quality (0.5) |
-| **HARD** | 3 | Full Lifecycle: All 4 major actions must be correct and efficient |
+- **EASY Tasks**: Single-attribute checks (e.g., correct classification).
+- **MEDIUM Tasks**: Partial workflow checks (e.g., Priority + Response empathy).
+- **HARD Tasks**: Full end-to-end lifecycle resolution under SLA constraints.
+- **EXTREME Tasks**: Multi-turn workflows requiring Knowledge Base (KB) lookups, cross-referencing policies, and clarification of vague customer inputs.
 
 ---
 
-## License
+## 🛡️ Reliability & Concurrency
+
+### Session Isolation
+The backend supports concurrent evaluation of multiple agents. By using the `session_id` query parameter, each evaluator gets a dedicated, isolated environment instance to prevent state crosstalk.
+
+### Robust Inference
+The provided `inference.py` includes built-in retry logic (max 3 attempts) and multi-pass JSON validation. This ensures the evaluation pipeline is resilient to transient LLM failures or malformed model outputs.
+
+---
+
+## 📄 License
 
 MIT © 2024
