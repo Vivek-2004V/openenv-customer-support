@@ -138,6 +138,35 @@ The environment includes **10 deterministic graders** spanning Easy, Medium, Har
 
 ---
 
+## 🏆 Judging Criteria & Technical Compliance
+
+| Criterion | Implementation in Customer Support Env |
+|-----------|----------------------------------------|
+| **Real-world Relevance** | Simulates complex enterprise support workflows (SLA, Triage, Policy). |
+| **Complexity** | 10 hand-crafted tasks with tiered difficulty (Easy to Extreme), multi-step trajectories (up to 12 steps), and state-dependent logic. |
+| **Standard Compliance** | 100% adherence to OpenEnv `step()`/`reset()`/`state()` API. Verified via `openenv validate`. |
+| **Robustness** | Session-based isolation for multi-agent evaluation and error-resilient inference pipeline. |
+| **Realism** | Uses 12 high-fidelity customer scenarios with dynamic sentiment decay (customers get angrier over time). |
+
+---
+
+## 📋 Detailed Task Matrix
+
+| Task ID | Name | Difficulty | Core Objective | Evaluation Metric |
+|---------|------|------------|----------------|-------------------|
+| `task_easy_1` | Classification | EASY | Categorize issue correctly | Classification match (0.99) |
+| `task_easy_2` | Priority | EASY | Set correct priority | Priority match (0.99) |
+| `task_medium_1`| Empathy Check | MEDIUM | Classify + Respond | Classification + Empathy keywords |
+| `task_medium_2`| Professionalism| MEDIUM | Classify + Solve | Classification + Solution keywords |
+| `task_hard_1` | Full Lifecycle | HARD | End-to-end resolution | Success on all 4 steps (0.25 each) |
+| `task_hard_2` | De-escalation | HARD | High-priority anger | High Priority + Empathy keywords |
+| `task_hard_3` | SLA Challenge | HARD | Efficiency under pressure| Bonus for fewer steps (≤4) |
+| `task_extreme_1`| Policy Lookup | EXTREME | Use KB for decision | KB match + Policy citation |
+| `task_extreme_2`| Vague Input | EXTREME | Clarify before resolve | `ask_clarification` call requirement |
+| `task_extreme_3`| Security P0 | EXTREME | Handle breach | Security KB + High Priority + Escalate |
+
+---
+
 ## 🛡️ Reliability & Concurrency
 
 ### Session Isolation
